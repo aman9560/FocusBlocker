@@ -1,5 +1,7 @@
 # Focus Blocker
 
+![Focus Blocker GitHub banner](Assets/github-banner.png)
+
 # ⚠️ CHROME EXTENSION: SEPARATE MANUAL INSTALL REQUIRED ⚠️
 
 **Installing the Mac DMG or Windows EXE does NOT install the Chrome extension.** Chrome requires a separate extension install. This extension is **not currently published in the Chrome Web Store**. To use website blocking, follow the step-by-step [Chrome extension install guide](Assets/CHROME-EXTENSION-INSTALL.md). You can also download the [extension ZIP](https://github.com/aman9560/FocusBlocker/releases/latest) separately.
@@ -12,7 +14,7 @@ FocusBlocker is an independent focus tool for macOS and Windows. It is not affil
 
 > **Status:** early development. The macOS app targets macOS 13 or later on Apple silicon. Windows is a separate x64 implementation with schedules, accountability locks, import, activity history, background enforcement, and Chrome integration. See [Windows setup and limitations](Windows/README.md).
 
-![Focus Blocker logo](Assets/focus-logo.png)
+![Focus Blocker logo](Assets/focus-logo-transparent.png)
 
 ## Features
 

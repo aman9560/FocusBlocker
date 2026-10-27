@@ -26,6 +26,7 @@ if [[ "${1:-}" == "app" ]]; then
   APP="$OUT/FocusBlocker.app"
   rm -rf "$APP"
   mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Helpers" "$APP/Contents/Resources" "$APP/Contents/Library/LaunchAgents"
+  cp Assets/focus.icns "$APP/Contents/Resources/focus.icns"
   swiftc "${FLAGS[@]}" -parse-as-library -I "$OUT" -L "$OUT" -lFocusCore \
     -o "$APP/Contents/MacOS/FocusBlocker" Sources/FocusBlockerApp/*.swift
   cp "$OUT/focusctl" "$OUT/focus-nmh" "$APP/Contents/Helpers/"
@@ -76,6 +77,7 @@ AGENT
   <key>CFBundleDisplayName</key><string>Focus Blocker</string>
   <key>CFBundleExecutable</key><string>FocusBlocker</string>
   <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleIconFile</key><string>focus.icns</string>
   <key>CFBundleShortVersionString</key><string>0.1.0</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
