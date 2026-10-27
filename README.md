@@ -1,8 +1,8 @@
 # Focus Blocker
 
-Focus Blocker is an independent macOS focus tool for timed sessions, schedules, website blocklists, and app blocking. It is not affiliated with or endorsed by any other focus-blocking product.
+Focus Blocker is an independent focus tool with a macOS app and an early Windows preview. The macOS app supports timed sessions, schedules, website blocklists, and app blocking; Windows currently supports a smaller feature set. It is not affiliated with or endorsed by any other focus-blocking product.
 
-> **Status:** early development. The current implementation targets macOS 13 or later and Apple silicon. It has no Windows build.
+> **Status:** early development. The macOS app targets macOS 13 or later on Apple silicon. Windows has an early x64 preview; it does not yet match the macOS feature set.
 
 ![Focus Blocker logo](Assets/focus-logo.png)
 
@@ -33,4 +33,4 @@ Load the `Extension` directory as an unpacked extension in Chrome, then install 
 
 ## Platform support
 
-The repository includes the macOS app and a separate early Windows preview. Windows does not yet include all macOS features; see [Windows setup and limitations](Windows/README.md). A Windows x64 ZIP is published on the [Releases page](https://github.com/aman9560/FocusBlocker/releases) after its Windows CI build succeeds.
+The repository includes the macOS app and a separate early Windows preview. Windows does not yet include all macOS features; see [Windows setup and limitations](Windows/README.md). Download the macOS DMG, Windows EXE, or Windows ZIP from [Latest Release](https://github.com/aman9560/FocusBlocker/releases/latest). The ZIP is recommended for Chrome integration because it includes the native host and extension files.
