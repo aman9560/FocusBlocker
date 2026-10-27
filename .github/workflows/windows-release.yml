@@ -1,12 +1,15 @@
 name: Windows release
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:
         description: Version tag to publish
         required: true
-        default: v0.1.0
+        default: v0.2.0
 
 permissions:
   contents: write
@@ -34,7 +37,7 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ inputs.version || github.ref_name }}
           REPOSITORY: ${{ github.repository }}
         run: |
           $ErrorActionPreference = 'Stop'
@@ -44,13 +47,23 @@ jobs:
             $release = Invoke-RestMethod -Method Get -Uri $releaseUri -Headers $headers
           } catch {
             if ($_.Exception.Response.StatusCode.value__ -ne 404) { throw }
-            $body = @{ tag_name = $env:VERSION; target_commitish = 'main'; name = "Focus Blocker $env:VERSION"; body = 'macOS arm64 DMG and Windows x64 preview builds. The Windows EXE has core app functionality; download the ZIP for Chrome integration files and setup notes.'; draft = $false; prerelease = $false; make_latest = 'true' } | ConvertTo-Json
+          $body = @{ tag_name = $env:VERSION; target_commitish = 'main'; name = "FocusBlocker $env:VERSION"; body = 'Full Windows x64 release with timed and scheduled sessions, named blocklists, accountability locks, import, activity history, background enforcement, and Chrome integration. Download the ZIP for the complete Windows app, native host, extension files and setup notes. The standalone EXE does not include Chrome integration files. macOS builds and the standalone extension are also attached when available.'; draft = $false; prerelease = $false; make_latest = 'true' } | ConvertTo-Json
             $release = Invoke-RestMethod -Method Post -Uri "https://api.github.com/repos/$env:REPOSITORY/releases" -Headers $headers -ContentType 'application/json' -Body $body
           }
-          $assets = @(
-            @{ Name = 'FocusBlocker-Windows-x64.zip'; Path = (Join-Path $env:RUNNER_TEMP 'FocusBlocker-Windows-x64.zip'); ContentType = 'application/zip' },
-            @{ Name = 'FocusBlocker.App.exe'; Path = (Join-Path (Join-Path $env:RUNNER_TEMP 'FocusBlocker-Windows') 'FocusBlocker.App.exe'); ContentType = 'application/vnd.microsoft.portable-executable' }
-          )
+          $previous = Invoke-RestMethod -Method Get -Uri "https://api.github.com/repos/$env:REPOSITORY/releases/tags/v0.1.0" -Headers $headers
+          $copiedAssets = @()
+          foreach ($name in @('FocusBlocker-macOS-arm64.dmg', 'FocusBlocker-macOS-arm64.zip', 'FocusBlocker-Chrome-Extension.zip')) {
+            $sourceAsset = $previous.assets | Where-Object { $_.name -eq $name } | Select-Object -First 1
+            if ($null -eq $sourceAsset) { throw "Missing existing release asset: $name" }
+            $path = Join-Path $env:RUNNER_TEMP $name
+            Invoke-WebRequest -Uri $sourceAsset.browser_download_url -OutFile $path
+            $type = if ($name.EndsWith('.dmg')) { 'application/x-apple-diskimage' } elseif ($name.EndsWith('.zip')) { 'application/zip' } else { 'application/octet-stream' }
+            $copiedAssets += @{ Name = $name; Path = $path; ContentType = $type }
+          }
+          $assets = @()
+          $assets += $copiedAssets
+          $assets += @{ Name = 'FocusBlocker-Windows-x64.zip'; Path = (Join-Path $env:RUNNER_TEMP 'FocusBlocker-Windows-x64.zip'); ContentType = 'application/zip' }
+          $assets += @{ Name = 'FocusBlocker.App.exe'; Path = (Join-Path (Join-Path $env:RUNNER_TEMP 'FocusBlocker-Windows') 'FocusBlocker.App.exe'); ContentType = 'application/vnd.microsoft.portable-executable' }
           foreach ($item in $assets) {
             if ($release.assets.name -contains $item.Name) {
               Write-Host "Skipping existing release asset $($item.Name)"

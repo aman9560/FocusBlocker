@@ -44,7 +44,8 @@ try
         using var document = JsonDocument.Parse(body);
         var type = document.RootElement.TryGetProperty("type", out var typeNode) ? typeNode.GetString() : null;
         if (type is "hello" or "getPolicy") SendPolicy();
-        else if (type is not "heartbeat") Send(new Dictionary<string, object?> { ["type"] = "error", ["message"] = "unknown message type" });
+        else if (type == "heartbeat") store.RecordExtensionHeartbeat();
+        else Send(new Dictionary<string, object?> { ["type"] = "error", ["message"] = "unknown message type" });
     }
 }
 catch (Exception error)

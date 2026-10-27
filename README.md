@@ -8,9 +8,9 @@ On Windows, use the full ZIP for Chrome support; the standalone EXE alone does n
 
 ---
 
-Focus Blocker is an independent focus tool with a macOS app and an early Windows preview. The macOS app supports timed sessions, schedules, website blocklists, and app blocking; Windows currently supports a smaller feature set. It is not affiliated with or endorsed by any other focus-blocking product.
+FocusBlocker is an independent focus tool for macOS and Windows. It is not affiliated with or endorsed by any other focus-blocking product.
 
-> **Status:** early development. The macOS app targets macOS 13 or later on Apple silicon. Windows has an early x64 preview; it does not yet match the macOS feature set.
+> **Status:** early development. The macOS app targets macOS 13 or later on Apple silicon. Windows is a separate x64 implementation with schedules, accountability locks, import, activity history, background enforcement, and Chrome integration. See [Windows setup and limitations](Windows/README.md).
 
 ![Focus Blocker logo](Assets/focus-logo.png)
 
@@ -41,4 +41,4 @@ Chrome's **Load unpacked** flow is required for the current extension build. Rea
 
 ## Platform support
 
-The repository includes the macOS app and a separate early Windows preview. Windows does not yet include all macOS features; see [Windows setup and limitations](Windows/README.md). Download the macOS DMG or ZIP, Windows EXE, Windows setup ZIP, or the separate Chrome extension ZIP from [Latest Release](https://github.com/aman9560/FocusBlocker/releases/latest). The Windows ZIP is needed for Chrome integration because it includes the native host and extension files.
+The repository includes the macOS app and a separate Windows implementation. Download the macOS DMG or ZIP, Windows EXE, Windows setup ZIP, or the separate Chrome extension ZIP from [Latest Release](https://github.com/aman9560/FocusBlocker/releases/latest). The Windows ZIP is needed for Chrome integration because it includes the native host and extension files.
