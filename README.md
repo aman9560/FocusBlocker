@@ -10,6 +10,28 @@ FocusBlocker is an independent implementation. It is not affiliated with or endo
 
 <p align="center"><img src="Assets/focus-logo-transparent.png" alt="Focus Blocker logo" width="320"></p>
 
+## Install
+
+### macOS (Apple silicon, macOS 13 or later)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/aman9560/FocusBlocker/main/install-mac.sh | bash
+```
+
+This downloads the latest release, installs `FocusBlocker.app` into `/Applications`, registers the Chrome connection and opens the app. It avoids macOS's "Apple cannot check it for malicious software" warning: that warning comes from the flag a **web browser** puts on downloaded files, and `curl` doesn't set it (the script also clears it). FocusBlocker is signed ad hoc rather than with a paid Apple Developer ID, so a DMG downloaded in a browser will be flagged; if you prefer the DMG, drag the app to Applications and run `xattr -dr com.apple.quarantine /Applications/FocusBlocker.app` once. Read [install-mac.sh](install-mac.sh) first if you like; `./install-mac.sh --help` lists its options.
+
+macOS still asks you to approve two things yourself: allow the background agent in **System Settings → General → Login Items** (use *Turn on agent* under Protection), and, for Chrome, load the extension (see below).
+
+### Windows (10 or 11, x64)
+
+```powershell
+irm https://raw.githubusercontent.com/aman9560/FocusBlocker/main/install-windows.ps1 | iex
+```
+
+This downloads the latest release ZIP, installs it under `%LOCALAPPDATA%\Programs\FocusBlocker`, adds a Start Menu shortcut, registers the Chrome connection and starts the app. No administrator rights are needed. It avoids the SmartScreen "Windows protected your PC" warning the same way: `Invoke-WebRequest` doesn't add the "downloaded from the internet" mark, and the script clears it from everything it installs.
+
+Both installers refuse to update while a focus session is running, because replacing the app would stop the background agent that enforces it. Your blocklists, schedules and history are kept.
+
 ## What FocusBlocker does
 
 ### Website and application blocklists
@@ -87,14 +109,22 @@ FocusBlocker keeps its settings, blocklists, schedules, sessions, and activity h
 The macOS build requires the Swift compiler and Apple Command Line Tools:
 
 ```sh
-./build.sh app
+./build.sh test   # builds the engine, runs the Swift and extension tests
+./build.sh app    # assembles .build/FocusBlocker.app
+./install-mac.sh --app .build/FocusBlocker.app
 ```
 
-This assembles `.build/FocusBlocker.app`. The local build is ad-hoc signed and is not notarized for distribution.
+The local build is ad-hoc signed and is not notarized for distribution.
 
 ### Windows
 
-The Windows app is a separate .NET 10/WPF project. See [Windows setup and limitations](Windows/README.md) for platform notes and use the Windows project files in `Windows/`.
+The Windows app is a separate .NET 10/WPF project. See [Windows setup and limitations](Windows/README.md) for platform notes.
+
+```sh
+dotnet run --project Windows/FocusBlocker.Tests -c Release   # engine, process rules, and the real Chrome host process
+```
+
+The tests run on any OS with the .NET 10 SDK. The WPF app itself only runs on Windows. On macOS or Linux it compiles when you add `-p:EnableWindowsTargeting=true`.
 
 Review the source code before enabling background enforcement or browser integration.
 

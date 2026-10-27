@@ -6,6 +6,7 @@ cd "$(dirname "$0")"
 OUT=.build
 mkdir -p "$OUT"
 FLAGS=(-O -swift-version 5 -target arm64-apple-macosx13.0)
+APP_VERSION="${FOCUS_VERSION:-0.1.0}"
 
 swiftc "${FLAGS[@]}" -parse-as-library -enable-testing -module-name FocusCore \
   -emit-module -emit-module-path "$OUT/FocusCore.swiftmodule" \
@@ -44,7 +45,7 @@ if [[ "${1:-}" == "app" ]]; then
   <key>CFBundleDisplayName</key><string>Focus Blocker</string>
   <key>CFBundleExecutable</key><string>focus-agent</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.1.0</string>
+  <key>CFBundleShortVersionString</key><string>$APP_VERSION</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>LSUIElement</key><true/>
@@ -78,7 +79,7 @@ AGENT
   <key>CFBundleExecutable</key><string>FocusBlocker</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleIconFile</key><string>focus.icns</string>
-  <key>CFBundleShortVersionString</key><string>0.1.0</string>
+  <key>CFBundleShortVersionString</key><string>$APP_VERSION</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>

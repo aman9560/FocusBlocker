@@ -1,5 +1,7 @@
-name: Windows release
+name: Release
 
+# Builds and publishes everything on a version tag: the macOS app (ZIP and DMG), the Windows app (ZIP and EXE) and
+# the Chrome extension ZIP. Run it from the Actions tab to rebuild a release, or push a tag such as v0.2.3.
 on:
   push:
     tags:
@@ -9,20 +11,66 @@ on:
       version:
         description: Version tag to publish
         required: true
-        default: v0.2.0
+        default: v0.2.3
 
 permissions:
   contents: write
 
+env:
+  VERSION: ${{ inputs.version || github.ref_name }}
+
 jobs:
-  build-and-release:
+  mac:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test
+        run: ./build.sh test
+      - name: Build the app
+        run: FOCUS_VERSION="${VERSION#v}" ./build.sh app
+      - name: Package ZIP, DMG and extension
+        run: |
+          set -euo pipefail
+          mkdir -p out stage
+          ditto -c -k --keepParent .build/FocusBlocker.app out/FocusBlocker-macOS-arm64.zip
+          ditto .build/FocusBlocker.app stage/FocusBlocker.app
+          ln -s /Applications stage/Applications
+          cat > "stage/READ ME FIRST.txt" <<'TXT'
+          Drag FocusBlocker to Applications.
+
+          If macOS says it can't check the app for malicious software, that is because FocusBlocker is signed
+          ad hoc rather than with a paid Apple Developer ID. The easiest way to avoid the warning entirely is to
+          install from Terminal instead, which doesn't get the browser-download flag:
+
+            curl -fsSL https://raw.githubusercontent.com/aman9560/FocusBlocker/main/install-mac.sh | bash
+
+          Or, after dragging it to Applications, run once:
+
+            xattr -dr com.apple.quarantine /Applications/FocusBlocker.app
+          TXT
+          hdiutil create -volname "FocusBlocker" -srcfolder stage -ov -format UDZO out/FocusBlocker-macOS-arm64.dmg
+          mkdir -p ext/FocusBlocker-Chrome-Extension
+          cp Extension/* ext/FocusBlocker-Chrome-Extension/
+          cp Assets/CHROME-EXTENSION-INSTALL.md ext/FocusBlocker-Chrome-Extension/README.txt
+          (cd ext && ditto -c -k --keepParent FocusBlocker-Chrome-Extension ../out/FocusBlocker-Chrome-Extension.zip)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: out/*
+
+  windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - name: Publish Windows app
+      - name: Test
+        run: dotnet run --project Windows/FocusBlocker.Tests -c Release
+      - name: Publish and package
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -32,48 +80,31 @@ jobs:
           dotnet publish Windows/FocusBlocker.NativeHost/FocusBlocker.NativeHost.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o (Join-Path $dist 'host')
           Copy-Item Extension (Join-Path $dist 'extension') -Recurse
           Copy-Item Windows/README.md (Join-Path $dist 'README-Windows.md')
-          Compress-Archive -Path (Join-Path $dist '*') -DestinationPath (Join-Path $env:RUNNER_TEMP 'FocusBlocker-Windows-x64.zip') -Force
-      - name: Add Windows assets to release
-        shell: pwsh
+          New-Item -ItemType Directory -Path out -Force | Out-Null
+          Compress-Archive -Path (Join-Path $dist '*') -DestinationPath out/FocusBlocker-Windows-x64.zip -Force
+          Copy-Item (Join-Path $dist 'FocusBlocker.App.exe') out/FocusBlocker.App.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: out/*
+
+  publish:
+    needs: [mac, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - name: Create or update the release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version || github.ref_name }}
-          REPOSITORY: ${{ github.repository }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          $ErrorActionPreference = 'Stop'
-          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json'; 'X-GitHub-Api-Version' = '2022-11-28' }
-          $releaseUri = "https://api.github.com/repos/$env:REPOSITORY/releases/tags/$env:VERSION"
-          $previous = $null
-          try {
-            $previous = Invoke-RestMethod -Method Get -Uri "https://api.github.com/repos/$env:REPOSITORY/releases/latest" -Headers $headers
-          } catch {
-            if ($_.Exception.Response.StatusCode.value__ -ne 404) { throw }
-          }
-          try {
-            $release = Invoke-RestMethod -Method Get -Uri $releaseUri -Headers $headers
-          } catch {
-            if ($_.Exception.Response.StatusCode.value__ -ne 404) { throw }
-          $body = @{ tag_name = $env:VERSION; target_commitish = 'main'; name = "FocusBlocker $env:VERSION"; body = 'Full Windows x64 release with timed and scheduled sessions, named blocklists, accountability locks, import, activity history, background enforcement, and Chrome integration. Download the ZIP for the complete Windows app, native host, extension files and setup notes. The standalone EXE does not include Chrome integration files. macOS builds and the standalone extension are also attached when available.'; draft = $false; prerelease = $false; make_latest = 'true' } | ConvertTo-Json
-            $release = Invoke-RestMethod -Method Post -Uri "https://api.github.com/repos/$env:REPOSITORY/releases" -Headers $headers -ContentType 'application/json' -Body $body
-          }
-          $copiedAssets = @()
-          foreach ($name in @('FocusBlocker-macOS-arm64.dmg', 'FocusBlocker-macOS-arm64.zip', 'FocusBlocker-Chrome-Extension.zip')) {
-            $sourceAsset = if ($null -eq $previous) { $null } else { $previous.assets | Where-Object { $_.name -eq $name } | Select-Object -First 1 }
-            if ($null -eq $sourceAsset) { Write-Host "No previous release asset found for $name"; continue }
-            $path = Join-Path $env:RUNNER_TEMP $name
-            Invoke-WebRequest -Uri $sourceAsset.browser_download_url -OutFile $path
-            $type = if ($name.EndsWith('.dmg')) { 'application/x-apple-diskimage' } elseif ($name.EndsWith('.zip')) { 'application/zip' } else { 'application/octet-stream' }
-            $copiedAssets += @{ Name = $name; Path = $path; ContentType = $type }
-          }
-          $assets = @()
-          $assets += $copiedAssets
-          $assets += @{ Name = 'FocusBlocker-Windows-x64.zip'; Path = (Join-Path $env:RUNNER_TEMP 'FocusBlocker-Windows-x64.zip'); ContentType = 'application/zip' }
-          $assets += @{ Name = 'FocusBlocker.App.exe'; Path = (Join-Path (Join-Path $env:RUNNER_TEMP 'FocusBlocker-Windows') 'FocusBlocker.App.exe'); ContentType = 'application/vnd.microsoft.portable-executable' }
-          foreach ($item in $assets) {
-            if ($release.assets.name -contains $item.Name) {
-              Write-Host "Skipping existing release asset $($item.Name)"
-              continue
-            }
-            $upload = "https://uploads.github.com/repos/$env:REPOSITORY/releases/$($release.id)/assets?name=$($item.Name)"
-            Invoke-RestMethod -Method Post -Uri $upload -Headers $headers -ContentType $item.ContentType -InFile $item.Path | Out-Null
-          }
+          set -euo pipefail
+          ls -la assets
+          if ! gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release create "$VERSION" --title "FocusBlocker $VERSION" --target main --latest \
+              --notes "FocusBlocker $VERSION for macOS (Apple silicon) and Windows (x64), with the Chrome extension. Install on a Mac with install-mac.sh and on Windows with install-windows.ps1 (see the README); this avoids the unsigned-app warnings. The Chrome extension is a separate install."
+          fi
+          gh release upload "$VERSION" assets/* --clobber
