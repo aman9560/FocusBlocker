@@ -33,4 +33,4 @@ Load the `Extension` directory as an unpacked extension in Chrome, then install 
 
 ## Platform support
 
-This repository contains a macOS implementation only. Windows support would require a separate Windows app, background-service, storage, and enforcement implementation; no Windows installer or release is currently available.
+The repository includes the macOS app and a separate early Windows preview. Windows does not yet include all macOS features; see [Windows setup and limitations](Windows/README.md). A Windows x64 ZIP is published on the [Releases page](https://github.com/aman9560/FocusBlocker/releases) after its Windows CI build succeeds.
