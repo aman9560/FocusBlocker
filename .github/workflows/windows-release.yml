@@ -1,0 +1,45 @@
+name: Windows release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version tag to publish
+        required: true
+        default: v0.1.0
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Publish Windows app
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dist = Join-Path $env:RUNNER_TEMP 'FocusBlocker-Windows'
+          New-Item -ItemType Directory -Path $dist -Force | Out-Null
+          dotnet publish Windows/FocusBlocker.App/FocusBlocker.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o $dist
+          dotnet publish Windows/FocusBlocker.NativeHost/FocusBlocker.NativeHost.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o (Join-Path $dist 'host')
+          Copy-Item Extension (Join-Path $dist 'extension') -Recurse
+          Copy-Item Windows/README.md (Join-Path $dist 'README-Windows.md')
+          Compress-Archive -Path (Join-Path $dist '*') -DestinationPath (Join-Path $env:RUNNER_TEMP 'FocusBlocker-Windows-x64.zip') -Force
+      - name: Create GitHub release and upload ZIP
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json'; 'X-GitHub-Api-Version' = '2022-11-28' }
+          $release = Invoke-RestMethod -Method Post -Uri "https://api.github.com/repos/$env:REPOSITORY/releases" -Headers $headers -ContentType 'application/json' -Body (@{ tag_name = $env:VERSION; target_commitish = 'main'; name = "Focus Blocker $env:VERSION for Windows"; body = 'Windows x64 preview build. See README-Windows.md in the ZIP for setup and limitations.'; draft = $false; prerelease = $false; make_latest = 'true' } | ConvertTo-Json)
+          $asset = Join-Path $env:RUNNER_TEMP 'FocusBlocker-Windows-x64.zip'
+          $upload = "https://uploads.github.com/repos/$env:REPOSITORY/releases/$($release.id)/assets?name=FocusBlocker-Windows-x64.zip"
+          Invoke-RestMethod -Method Post -Uri $upload -Headers $headers -ContentType 'application/zip' -InFile $asset | Out-Null
