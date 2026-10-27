@@ -7,4 +7,11 @@ signing/extension-key.pem
 *.crx
 
 # Local macOS artifacts
-*.app/
+.build/FocusBlocker.app/
+
+# Windows build output
+Windows/**/bin/
+Windows/**/obj/
+Windows/**/publish/
+.vs/
+dist/
