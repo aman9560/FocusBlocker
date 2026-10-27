@@ -11,10 +11,9 @@ namespace FocusBlocker.App;
 
 public partial class MainWindow : Window
 {
-    private const string ExtensionId = "mchnpkbnifalondddkmcbplnlebaebmd";
     private readonly StateStore _store = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1) };
-    private readonly Dictionary<int, DateTime> _lastCloseRequest = [];
+    private readonly Enforcer _enforcer = new();
     private FocusState _state = new();
     private bool _loading;
 
@@ -44,7 +43,8 @@ public partial class MainWindow : Window
 
     private void RefreshSession()
     {
-        _store.Tick(); _state = _store.Load();
+        try { _store.Tick(); _state = _store.Load(); }
+        catch (Exception) { return; }  // A busy or briefly unreadable state file must not crash the timer; try again next second.
         var active = _state.Sessions.Where(s => s.IsActive).ToList();
         if (active.Count == 0)
         {
@@ -136,7 +136,7 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFileDialog { Title = "Import websites", Filter = "Text and JSON files|*.txt;*.json|All files|*.*", Multiselect = false };
         if (dialog.ShowDialog(this) != true) return;
-        try { _store.ImportBlocklists(ParseImport(File.ReadAllText(dialog.FileName), Path.GetFileNameWithoutExtension(dialog.FileName))); RefreshAll(); }
+        try { _store.ImportBlocklists(BlocklistImporter.Parse(File.ReadAllText(dialog.FileName), Path.GetFileNameWithoutExtension(dialog.FileName))); RefreshAll(); }
         catch (Exception error) { ShowError(new InvalidOperationException("Could not import this file. Choose a plain-text domain list or a JSON export with website/domain fields. " + error.Message)); }
     }
 
@@ -186,41 +186,13 @@ public partial class MainWindow : Window
     {
         try
         {
-            var source = Path.Combine(AppContext.BaseDirectory, "host");
-            var executable = Path.Combine(source, "FocusBlocker.NativeHost.exe");
-            if (!File.Exists(executable)) throw new FileNotFoundException("The host folder is missing. Use the complete Windows release ZIP.", executable);
-            var install = Path.Combine(StateStore.DirectoryPath, "native-host"); Directory.CreateDirectory(install);
-            foreach (var file in Directory.GetFiles(source)) File.Copy(file, Path.Combine(install, Path.GetFileName(file)), overwrite: true);
-            var manifestPath = Path.Combine(StateStore.DirectoryPath, "native-host.json");
-            var manifest = new { name = "com.focusblocker.nmh", description = "FocusBlocker Chrome native messaging host", path = Path.Combine(install, "FocusBlocker.NativeHost.exe"), type = "stdio", allowed_origins = new[] { $"chrome-extension://{ExtensionId}/" } };
-            File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }));
-            using var key = Registry.CurrentUser.CreateSubKey(@"Software\Google\Chrome\NativeMessagingHosts\com.focusblocker.nmh"); key.SetValue(null, manifestPath, RegistryValueKind.String);
-            MessageBox.Show("Chrome host installed for this Windows account. Then load the included Extension folder as an unpacked extension in chrome://extensions.", "FocusBlocker", MessageBoxButton.OK, MessageBoxImage.Information);
+            ChromeHostInstaller.Install();
+            MessageBox.Show("Chrome host installed for this Windows account. Then load the included extension folder as an unpacked extension in chrome://extensions.", "FocusBlocker", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception error) { ShowError(error); }
     }
 
-    private void CloseBlockedProcesses()
-    {
-        var activeIds = _state.Sessions.Where(s => s.IsActive).SelectMany(s => s.BlocklistIds).ToHashSet();
-        var lists = _state.Blocklists.Where(b => activeIds.Contains(b.Id)).ToList();
-        var names = lists.SelectMany(b => b.ProcessNames).Distinct(StringComparer.OrdinalIgnoreCase).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var hasWebsiteRules = lists.Any(b => b.Domains.Count > 0);
-        if (_state.CloseOtherBrowsers && hasWebsiteRules && _state.Sessions.Any(s => s.IsActive && s.Strict))
-            foreach (var browser in new[] { "msedge", "firefox", "brave", "opera", "vivaldi", "arc" }) names.Add(browser);
-        var strictChrome = hasWebsiteRules && _state.Sessions.Any(s => s.IsActive && s.Strict)
-            && (_state.ExtensionHeartbeatUtc is null || DateTimeOffset.UtcNow - _state.ExtensionHeartbeatUtc > TimeSpan.FromSeconds(45));
-        if (strictChrome) names.Add("chrome");
-        foreach (var name in names)
-        {
-            Process[] processes; try { processes = Process.GetProcessesByName(name); } catch { continue; }
-            foreach (var process in processes)
-            {
-                try { if (process.Id != Environment.ProcessId && (!_lastCloseRequest.TryGetValue(process.Id, out var last) || DateTime.UtcNow - last >= TimeSpan.FromSeconds(10)) && process.CloseMainWindow()) _lastCloseRequest[process.Id] = DateTime.UtcNow; }
-                catch { } finally { process.Dispose(); }
-            }
-        }
-    }
+    private void CloseBlockedProcesses() => _enforcer.Run(_store, _state);
 
     private static void ConfigureAutoStart(bool enabled)
     {
@@ -236,54 +208,6 @@ public partial class MainWindow : Window
     }
 
     private static List<string> Lines(string value) => value.Split(new[] { '\r', '\n', ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-
-    private static IEnumerable<(string Name, IEnumerable<string> Domains, IEnumerable<string> Exceptions)> ParseImport(string contents, string fallbackName)
-    {
-        if (contents.TrimStart().StartsWith("CTB", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException("This encoded Cold Turkey export is not readable here. Export a JSON file using Cold Turkey’s own export option, or copy websites into a text file, one per line.");
-        if (!contents.TrimStart().StartsWith('{') && !contents.TrimStart().StartsWith('['))
-            return [(fallbackName, contents.Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0 && !line.StartsWith('#')).SelectMany(line => line.Split(new[] { ' ', '\t', ',', ';' }, StringSplitOptions.RemoveEmptyEntries)), Array.Empty<string>())];
-        using var document = JsonDocument.Parse(contents);
-        var results = new List<(string Name, IEnumerable<string> Domains, IEnumerable<string> Exceptions)>();
-        var root = document.RootElement;
-        if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("blocks", out var blocks) && blocks.ValueKind == JsonValueKind.Object)
-        {
-            foreach (var block in blocks.EnumerateObject())
-            {
-                var (domains, exceptions) = Extract(block.Value);
-                if (domains.Count > 0 || exceptions.Count > 0) results.Add((block.Name, domains, exceptions));
-            }
-        }
-        else { var (domains, exceptions) = Extract(root); if (domains.Count > 0 || exceptions.Count > 0) results.Add((fallbackName, domains, exceptions)); }
-        if (results.Count == 0) throw new InvalidDataException("No website rules were found.");
-        return results;
-
-        static (List<string> Domains, List<string> Exceptions) Extract(JsonElement node)
-        {
-            var domains = new List<string>(); var exceptions = new List<string>();
-            void Walk(JsonElement value)
-            {
-                if (value.ValueKind == JsonValueKind.Object)
-                {
-                    foreach (var property in value.EnumerateObject())
-                    {
-                        var key = property.Name.ToLowerInvariant();
-                        if (key is "web" or "websites" or "blocklist" or "domains" or "sites") CollectStrings(property.Value, domains);
-                        else if (key is "exceptions" or "exceptionlist" or "allow" or "allowlist") CollectStrings(property.Value, exceptions);
-                        else Walk(property.Value);
-                    }
-                }
-                else if (value.ValueKind == JsonValueKind.Array) foreach (var item in value.EnumerateArray()) Walk(item);
-            }
-            Walk(node); return (domains, exceptions);
-        }
-        static void CollectStrings(JsonElement node, List<string> output)
-        {
-            if (node.ValueKind == JsonValueKind.String) output.Add(node.GetString() ?? "");
-            else if (node.ValueKind == JsonValueKind.Array) foreach (var item in node.EnumerateArray()) CollectStrings(item, output);
-            else if (node.ValueKind == JsonValueKind.Object) foreach (var property in node.EnumerateObject()) CollectStrings(property.Value, output);
-        }
-    }
 
     private static string? PromptPassword(string prompt)
     {

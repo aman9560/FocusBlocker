@@ -9,7 +9,7 @@ public partial class App : Application
 {
     private Mutex? _agentMutex;
     private DispatcherTimer? _agentTimer;
-    private readonly Dictionary<int, DateTime> _lastCloseRequest = [];
+    private readonly Enforcer _enforcer = new();
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -21,6 +21,14 @@ public partial class App : Application
             if (!created) { Shutdown(); return; }
             _agentTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
             _agentTimer.Tick += (_, _) => Enforce(); _agentTimer.Start(); Enforce();
+            return;
+        }
+        if (e.Args.Contains("--install-host", StringComparer.OrdinalIgnoreCase))
+        {
+            // Used by install-windows.ps1: no window, and the exit code says whether it worked.
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            try { ChromeHostInstaller.Install(); Shutdown(0); }
+            catch (Exception) { Shutdown(1); }
             return;
         }
         if (e.Args.Contains("--failsafe-end", StringComparer.OrdinalIgnoreCase))
@@ -55,25 +63,7 @@ public partial class App : Application
         {
             var store = new StateStore(); store.Tick(); var state = store.Load();
             if (!state.AgentEnabled) { Shutdown(); return; }
-            var active = state.Sessions.Where(s => s.IsActive).ToList();
-            if (active.Count == 0) return;
-            var ids = active.SelectMany(s => s.BlocklistIds).ToHashSet();
-            var lists = state.Blocklists.Where(b => ids.Contains(b.Id)).ToList();
-            var blocked = lists.SelectMany(b => b.ProcessNames).Distinct(StringComparer.OrdinalIgnoreCase).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var websiteRules = lists.Any(b => b.Domains.Count > 0);
-            var strictWeb = websiteRules && active.Any(s => s.Strict);
-            if (state.CloseOtherBrowsers && strictWeb)
-                foreach (var name in new[] { "msedge", "firefox", "brave", "opera", "vivaldi", "arc" }) blocked.Add(name);
-            if (strictWeb && (state.ExtensionHeartbeatUtc is null || DateTimeOffset.UtcNow - state.ExtensionHeartbeatUtc > TimeSpan.FromSeconds(45))) blocked.Add("chrome");
-            foreach (var name in blocked)
-            {
-                Process[] processes; try { processes = Process.GetProcessesByName(name); } catch { continue; }
-                foreach (var process in processes)
-                {
-                    try { if (process.Id != Environment.ProcessId && (!_lastCloseRequest.TryGetValue(process.Id, out var last) || DateTime.UtcNow - last >= TimeSpan.FromSeconds(10)) && process.CloseMainWindow()) _lastCloseRequest[process.Id] = DateTime.UtcNow; }
-                    catch { } finally { process.Dispose(); }
-                }
-            }
+            _enforcer.Run(store, state);
         }
         catch { /* Continue periodic enforcement after transient state or process errors. */ }
     }
