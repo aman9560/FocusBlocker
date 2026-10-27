@@ -1,0 +1,10 @@
+# Build products
+.build/
+.DS_Store
+
+# Extension signing secret
+signing/extension-key.pem
+*.crx
+
+# Local macOS artifacts
+*.app/

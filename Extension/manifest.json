@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Focus Blocker",
+  "version": "0.1.0",
+  "description": "Blocks distracting sites during Focus sessions. Rules come from the Focus app on this Mac.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnE2B2xzuK6mbuNhn9/8e+fnTWpv4QtnuPMr+P//MeRVDLwMrnguK7QIWzu2OdQTRAbrOoGyQrZSO8Uu7VqgrSyBBJcYTQosss2s9AR5BT94p+h3EGr/Unx3uyV9fqx/815j4Hif449CWG2zGS2ZtVDEjlQKIHkodIGHJ2mwkY62651EQZTdhnpQ1CEHEbuDPFyMqQYExTumLqPz9nYexdVrR+3XLNwaXyPVP1blJc8iZQtp6bv8LnvN9q+yBc3XdTI9PSA/AqD+WcLGikxUyJb4AmOG5CNPXg6+PYrAYZb4zr7olmptKW2dUmOa3CDGRu8c4BNzZPzixEA7oBcrDrQIDAQAB",
+  "minimum_chrome_version": "120",
+  "incognito": "spanning",
+  "permissions": [
+    "declarativeNetRequest",
+    "nativeMessaging",
+    "tabs",
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Focus Blocker"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "blocked.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "comment": "Shared by the Swift tests and the extension's Node tests so both matchers agree.",
+  "domains": ["reddit.com", "x.com", "youtube.com/shorts", "news.ycombinator.com"],
+  "exceptions": ["reddit.com/r/swift"],
+  "cases": [
+    { "url": "https://reddit.com/", "blocked": true },
+    { "url": "https://www.reddit.com/r/all", "blocked": true },
+    { "url": "https://old.reddit.com/r/swift", "blocked": false },
+    { "url": "https://www.reddit.com/r/swift/comments/abc", "blocked": false },
+    { "url": "https://www.reddit.com/r/swiftui", "blocked": true },
+    { "url": "https://notreddit.com/", "blocked": false },
+    { "url": "https://x.com/home", "blocked": true },
+    { "url": "https://box.com/", "blocked": false },
+    { "url": "https://www.youtube.com/shorts/abc123", "blocked": true },
+    { "url": "https://m.youtube.com/shorts", "blocked": true },
+    { "url": "https://www.youtube.com/shortstack", "blocked": false },
+    { "url": "https://www.youtube.com/watch?v=1", "blocked": false },
+    { "url": "https://YouTube.com/Shorts/X", "blocked": true },
+    { "url": "https://news.ycombinator.com/item?id=1", "blocked": true },
+    { "url": "https://ycombinator.com/", "blocked": false },
+    { "url": "https://reddit.com.:443/", "blocked": true },
+    { "url": "chrome://extensions", "blocked": false },
+    { "url": "file:///Users/me/reddit.com.html", "blocked": false }
+  ]
+}
