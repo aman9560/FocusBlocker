@@ -25,7 +25,7 @@ The current build script uses the Swift compiler directly and requires the macOS
 ./build.sh app
 ```
 
-`./build.sh app` assembles `.build/FocusBlocker.app`. The app is ad-hoc signed for local use; it is not notarized for distribution. See the source and setup notes in this repository before enabling the optional background agent or browser integration.
+`./build.sh app` assembles `.build/FocusBlocker.app`. The app is ad-hoc signed for local use; it is not notarized for distribution. Review the relevant source code before enabling the optional background agent or browser integration.
 
 ## Browser extension
 
