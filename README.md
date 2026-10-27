@@ -1,6 +1,6 @@
 # Focus Blocker
 
-![Focus Blocker GitHub banner](Assets/github-banner.png)
+<p align="center"><img src="Assets/github-banner.png" alt="Focus Blocker GitHub banner" width="100%"></p>
 
 # ⚠️ CHROME EXTENSION: SEPARATE MANUAL INSTALL REQUIRED ⚠️
 
@@ -14,7 +14,7 @@ FocusBlocker is an independent focus tool for macOS and Windows. It is not affil
 
 > **Status:** early development. The macOS app targets macOS 13 or later on Apple silicon. Windows is a separate x64 implementation with schedules, accountability locks, import, activity history, background enforcement, and Chrome integration. See [Windows setup and limitations](Windows/README.md).
 
-![Focus Blocker logo](Assets/focus-logo-transparent.png)
+<p align="center"><img src="Assets/focus-logo-transparent.png" alt="Focus Blocker logo" width="320"></p>
 
 ## Features
 
