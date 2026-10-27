@@ -28,7 +28,7 @@ public enum FocusNotice {
     public static func started(_ session: Session, listNames: String) -> Content {
         let lock: String
         switch session.lock {
-        case .timer: lock = "Timer-locked: it can't be stopped early."
+        case .timer: lock = "Timer-locked: normal stop is disabled; emergency failsafe is available."
         case .password: lock = "Ending it early needs the accountability password."
         case .none: lock = "You can stop it any time."
         }
@@ -41,6 +41,7 @@ public enum FocusNotice {
         switch session.endReason {
         case .completed?: return Content(title: "Focus session complete", body: "\(listNames) is unblocked. Nice work.")
         case .unlockedWithPassword?: return Content(title: "Focus session ended early", body: "\(listNames) was unlocked with the accountability password.")
+        case .failsafe?: return Content(title: "Focus session ended with failsafe", body: "\(listNames) was ended early. Your blocklists and settings were preserved.")
         default: return Content(title: "Focus session stopped", body: "\(listNames) is unblocked.")
         }
     }

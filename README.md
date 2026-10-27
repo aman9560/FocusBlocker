@@ -21,6 +21,7 @@ FocusBlocker is an independent focus tool for macOS and Windows. It is not affil
 - Chrome extension integration through a native messaging host
 - Optional background agent for app and browser enforcement
 - Local activity log and import of supported blocklist formats
+- Emergency failsafe to end active sessions while preserving all saved configuration
 
 Enforcement on a personal administrator account is intended to add friction and make casual bypasses visible. It cannot prevent an administrator from stopping or removing the software.
 
@@ -34,6 +35,8 @@ The current build script uses the Swift compiler directly and requires the macOS
 ```
 
 `./build.sh app` assembles `.build/FocusBlocker.app`. The app is ad-hoc signed for local use; it is not notarized for distribution. Review the relevant source code before enabling the optional background agent or browser integration.
+
+During an active session, choose **Emergency end active blocks** in the app, or run `/Applications/FocusBlocker.app/Contents/Helpers/focusctl failsafe-end` in Terminal and confirm with `y`. This ends active sessions, records the action, and keeps blocklists, schedules, passwords and settings.
 
 ## Browser extension
 

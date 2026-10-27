@@ -49,13 +49,14 @@ public partial class MainWindow : Window
         if (active.Count == 0)
         {
             StatusText.Text = "No session active"; CountdownText.Text = "";
-            StartButton.IsEnabled = true; StopButton.IsEnabled = false; return;
+            StartButton.IsEnabled = true; StopButton.IsEnabled = false; FailsafeButton.IsEnabled = false; return;
         }
         var remaining = active.Min(s => s.EndsUtc) - DateTimeOffset.UtcNow;
         StatusText.Text = active.Any(s => s.Strict) ? $"Strict session active · {active.Count} blocklist session(s)" : $"Session active · {active.Count} session(s)";
         CountdownText.Text = $"{(int)remaining.TotalHours:00}:{remaining.Minutes:00}:{remaining.Seconds:00} remaining";
         StartButton.IsEnabled = false;
         StopButton.IsEnabled = active.All(s => s.Lock != SessionLock.Timer.ToString());
+        FailsafeButton.IsEnabled = true;
         CloseBlockedProcesses();
     }
 
@@ -83,6 +84,18 @@ public partial class MainWindow : Window
             _store.StopSessions(password); RefreshAll();
         }
         catch (Exception error) { ShowError(error); }
+    }
+
+    private void Failsafe_Click(object sender, RoutedEventArgs e)
+    {
+        var confirm = MessageBox.Show(this,
+            "End all active blocks now, including timer- and password-locked sessions? Your blocklists, schedules, passwords and settings will be kept. This action will be recorded.",
+            "Emergency failsafe", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+        if (confirm != MessageBoxResult.Yes) return;
+        var ended = _store.EndSessionsWithFailsafe();
+        MessageBox.Show(this, ended == 0 ? "No active blocks." : $"Ended {ended} active block(s). Your settings were preserved.",
+            "FocusBlocker", MessageBoxButton.OK, MessageBoxImage.Information);
+        RefreshAll();
     }
 
     private void Blocklist_SelectionChanged(object sender, SelectionChangedEventArgs e)

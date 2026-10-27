@@ -13,6 +13,7 @@ focusctl — command-line front end for the Focus blocker engine
   password set
   start --blocklist NAME [--blocklist NAME]... --minutes N [--lock timer|password|none] [--no-strict]
   stop
+  failsafe-end     end active sessions immediately; preserve all configuration
   schedule list
   schedule add NAME --blocklist NAME... --days mon,tue|weekdays|all --from HH:MM --to HH:MM [--tz ZONE] [--lock L] [--no-strict]
   schedule delete NAME
@@ -30,7 +31,7 @@ focusctl — command-line front end for the Focus blocker engine
 Options: --state-dir DIR (default ~/Library/Application Support/FocusBlocker; also FOCUS_STATE_DIR)
          --key-file FILE  (default STATE_DIR/state.key; also FOCUS_KEY_FILE)
          --password-stdin (read passwords from stdin, one per line)
-Sessions default to a strict, timer-locked session: it can't be stopped until it ends.
+Sessions default to a strict, timer-locked session. `failsafe-end` is an explicit emergency override.
 """
 
 struct Arguments {
@@ -185,7 +186,7 @@ func run() throws {
         let session = try engine.startSession(blocklistNames: args.many("--blocklist"), duration: minutes * 60,
                                               lock: lock, strict: !args.flags.contains("--no-strict"))
         print("Session started: \(formatDuration(session.duration)), lock \(lock.rawValue)\(session.strict ? ", strict" : "").")
-        if lock == .timer { print("It can't be stopped early.") }
+        if lock == .timer { print("Normal stop is disabled; failsafe-end remains available.") }
 
     case ("stop", _):
         let needsPassword = engine.state.activeSessions.contains { $0.lock == .password }
@@ -193,6 +194,15 @@ func run() throws {
         let password = needsPassword ? try passwords.read("Accountability password") : nil
         let ended = try engine.stopSessions(password: password)
         print(ended.isEmpty ? "No active sessions." : "Stopped \(ended.count) session(s).")
+
+    case ("failsafe-end", _):
+        print("End all active FocusBlocker sessions now? Blocklists and settings will be preserved. (y/N)", terminator: " ")
+        guard readLine()?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "y" else {
+            print("Cancelled.")
+            return
+        }
+        let ended = try engine.endSessionsWithFailsafe()
+        print(ended.isEmpty ? "No active sessions." : "Failsafe ended \(ended.count) session(s); blocklists and settings were preserved.")
 
     case ("schedule", "list"):
         let names = Dictionary(uniqueKeysWithValues: engine.state.blocklists.map { ($0.id, $0.name) })

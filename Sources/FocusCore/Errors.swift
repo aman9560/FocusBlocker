@@ -33,7 +33,7 @@ public enum FocusError: Error, Equatable, CustomStringConvertible {
         case .unknownSession(let id): return "No active session \(id)."
         case .unknownSchedule(let n): return "No schedule named \"\(n)\"."
         case .duplicateName(let n): return "\"\(n)\" already exists."
-        case .timerLocked(let r): return "This session is timer-locked and can't be stopped. \(Self.format(r)) left."
+        case .timerLocked(let r): return "Normal stop is disabled for this timer-locked session. The emergency failsafe can end it. \(Self.format(r)) left."
         case .weakensActiveSession(let why): return "Not allowed during a strict session: \(why)."
         case .invalidRule(let r): return "Invalid rule \"\(r)\"."
         case .protectedApp(let id): return "\(id) is part of macOS or Focus Blocker and can't be blocked."

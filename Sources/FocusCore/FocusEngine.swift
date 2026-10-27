@@ -99,6 +99,25 @@ public final class FocusEngine {
         return ended
     }
 
+    /// Ends all active sessions immediately while preserving blocklists, schedules and settings.
+    /// This explicit emergency escape hatch is recorded in the activity log.
+    @discardableResult
+    public func endSessionsWithFailsafe() throws -> [Session] {
+        var ended: [Session] = []
+        try transaction {
+            let now = clock.wallNow()
+            for index in state.sessions.indices where state.sessions[index].isActive {
+                state.sessions[index].endedAt = now
+                state.sessions[index].endReason = .failsafe
+                ended.append(state.sessions[index])
+            }
+            guard !ended.isEmpty else { return [] }
+            try audit.append("session.failsafe_ended", "Ended \(ended.count) active session(s); configuration preserved", at: now)
+            return []
+        }
+        return ended
+    }
+
     /// The policy as of the last transaction. Call `tick()` first for an up-to-date answer.
     public func policy() -> EnforcementPolicy {
         EnforcementPolicy.build(sessions: state.activeSessions, blocklists: state.blocklists, now: clock.wallNow())

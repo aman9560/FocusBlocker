@@ -23,6 +23,28 @@ public partial class App : Application
             _agentTimer.Tick += (_, _) => Enforce(); _agentTimer.Start(); Enforce();
             return;
         }
+        if (e.Args.Contains("--failsafe-end", StringComparer.OrdinalIgnoreCase))
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            var confirm = MessageBox.Show(
+                "End all active FocusBlocker sessions now, including timer- and password-locked sessions? Your blocklists, schedules, passwords and settings will be kept, and the action will be recorded.",
+                "FocusBlocker emergency failsafe", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            if (confirm == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    var ended = new StateStore().EndSessionsWithFailsafe();
+                    MessageBox.Show(ended == 0 ? "No active blocks." : $"Ended {ended} active block(s). Your settings were preserved.",
+                        "FocusBlocker", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception error)
+                {
+                    MessageBox.Show(error.Message, "FocusBlocker failsafe failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            Shutdown();
+            return;
+        }
         var main = new MainWindow(); MainWindow = main; main.Show();
         if (new StateStore().Load().AgentEnabled) main.StartAgentIfEnabled();
     }

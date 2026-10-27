@@ -34,7 +34,7 @@ public struct AppRule: Codable, Hashable, Sendable {
 public enum LockKind: String, Codable, Sendable, CaseIterable {
     /// Can be stopped at any time.
     case none
-    /// Cannot be stopped early by any means the app offers.
+    /// Cannot be stopped early through normal session controls; the emergency failsafe remains available.
     case timer
     /// Can be stopped early only with the accountability password.
     case password
@@ -49,6 +49,7 @@ public enum EndReason: String, Codable, Sendable {
     case completed
     case stoppedUnlocked
     case unlockedWithPassword
+    case failsafe
 }
 
 public struct Session: Codable, Equatable, Identifiable, Sendable {

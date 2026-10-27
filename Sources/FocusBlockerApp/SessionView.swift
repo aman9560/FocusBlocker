@@ -22,6 +22,7 @@ struct SessionView: View {
 struct ActiveSessionsView: View {
     @EnvironmentObject var model: AppModel
     @LocalState private var password = ""
+    @LocalState private var confirmFailsafe = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -42,13 +43,21 @@ struct ActiveSessionsView: View {
             }
             stopControls
         }
+        .confirmationDialog("End all active blocks now?", isPresented: $confirmFailsafe, titleVisibility: .visible) {
+            Button("End active blocks", role: .destructive, action: failsafeEnd)
+        } message: {
+            Text("This bypasses timer and password locks for active sessions. Your blocklists, schedules, passwords and settings will be kept, and the action will be recorded.")
+        }
     }
 
     @ViewBuilder var stopControls: some View {
         let sessions = model.activeSessions
         if sessions.contains(where: { $0.lock == .timer }) {
-            Label("Timer-locked: this can't be stopped early.", systemImage: "hourglass")
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 8) {
+                Label("Timer-locked: normal stop is disabled.", systemImage: "hourglass")
+                    .foregroundStyle(.secondary)
+                Button("Emergency end active blocks…", role: .destructive) { confirmFailsafe = true }
+            }
         } else if sessions.contains(where: { $0.lock == .password }) {
             HStack {
                 SecureField("Accountability password", text: $password)
@@ -64,12 +73,19 @@ struct ActiveSessionsView: View {
         } else {
             Button("Stop session", action: stop)
         }
+        if !sessions.contains(where: { $0.lock == .timer }) {
+            Button("Emergency end active blocks…", role: .destructive) { confirmFailsafe = true }
+        }
     }
 
     func stop() {
         let entered = password
         password = ""
         model.perform("Session ended.") { try $0.stopSessions(password: entered.isEmpty ? nil : entered) }
+    }
+
+    func failsafeEnd() {
+        model.perform("Active blocks ended. Your settings were preserved.") { _ = try $0.endSessionsWithFailsafe() }
     }
 
     func lockText(_ lock: LockKind) -> String {
@@ -118,7 +134,7 @@ struct StartSessionForm: View {
                 }
             }
             Picker("Lock", selection: $lock) {
-                Text("Timer: can't be stopped").tag(LockKind.timer)
+                Text("Timer: locked (failsafe available)").tag(LockKind.timer)
                 Text("Password: accountability password ends it").tag(LockKind.password)
                 Text("None: stop any time").tag(LockKind.none)
             }
@@ -139,7 +155,7 @@ struct StartSessionForm: View {
         .confirmationDialog("Start a \(minutes)-minute timer-locked session?", isPresented: $confirmTimer) {
             Button("Start", action: start)
         } message: {
-            Text("It can't be stopped from Focus Blocker until the time is up, including after a restart.")
+            Text("Normal stop is disabled until the time is up. An emergency failsafe remains available and is recorded in activity.")
         }
     }
 

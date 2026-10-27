@@ -166,6 +166,24 @@ public sealed class StateStore
         });
     }
 
+    public int EndSessionsWithFailsafe()
+    {
+        var ended = 0;
+        Update(state =>
+        {
+            var active = state.Sessions.Where(s => s.IsActive).ToList();
+            foreach (var session in active)
+            {
+                session.EndedUtc = DateTimeOffset.UtcNow;
+                session.EndReason = "failsafe";
+            }
+            ended = active.Count;
+            if (ended > 0) AddActivity(state, "session.failsafe_ended", $"Ended {ended} active session(s); configuration preserved");
+            return ended > 0;
+        });
+        return ended;
+    }
+
     public void SetPassword(string password, string? currentPassword)
     {
         Update(state =>
