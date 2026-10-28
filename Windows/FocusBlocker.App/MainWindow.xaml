@@ -1,53 +1,240 @@
 <Window x:Class="FocusBlocker.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="FocusBlocker" Height="790" Width="1040" MinHeight="670" MinWidth="800"
-        Background="#F7F3EF" WindowStartupLocation="CenterScreen">
+        Title="FocusBlocker" Height="860" Width="1120" MinHeight="660" MinWidth="940"
+        Background="{StaticResource WindowBrush}" Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="14" WindowStartupLocation="CenterScreen">
     <Window.Resources>
-        <Style TargetType="Button"><Setter Property="Padding" Value="14,8"/><Setter Property="Margin" Value="0,0,8,0"/></Style>
-        <Style TargetType="TextBox"><Setter Property="Padding" Value="8"/><Setter Property="Margin" Value="0,4,0,8"/></Style>
-        <Style TargetType="ComboBox"><Setter Property="Padding" Value="6"/><Setter Property="Margin" Value="0,4,8,8"/></Style>
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}"><Setter Property="Padding" Value="11,9"/><Setter Property="Margin" Value="0,0,0,14"/></Style>
+        <Style TargetType="PasswordBox" BasedOn="{StaticResource {x:Type PasswordBox}}"><Setter Property="Padding" Value="11,9"/><Setter Property="Margin" Value="0,0,0,14"/></Style>
+        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}"><Setter Property="Padding" Value="11,8"/></Style>
+        <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}"><Setter Property="Background" Value="{StaticResource InputBrush}"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="4"/></Style>
+        <Style x:Key="CodeBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="AcceptsReturn" Value="True"/><Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/><Setter Property="VerticalContentAlignment" Value="Top"/>
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas"/><Setter Property="FontSize" Value="13"/><Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
     </Window.Resources>
-    <Grid Margin="24">
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <DockPanel>
-            <StackPanel><TextBlock Text="FocusBlocker" FontSize="28" FontWeight="SemiBold" Foreground="#562A18"/><TextBlock Text="Build a focus routine that works across apps and websites." Foreground="#665B55"/></StackPanel>
-            <Border DockPanel.Dock="Right" Background="White" CornerRadius="10" Padding="14" VerticalAlignment="Center"><StackPanel><TextBlock x:Name="StatusText" Text="No session active" FontWeight="SemiBold"/><TextBlock x:Name="CountdownText" Foreground="#9A4B25"/></StackPanel></Border>
-        </DockPanel>
-        <TabControl Grid.Row="2" Margin="0,18,0,14" Background="Transparent">
-            <TabItem Header="Focus session">
-                <Grid Margin="16"><Grid.ColumnDefinitions><ColumnDefinition Width="1.2*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <StackPanel Margin="0,0,22,0"><TextBlock Text="Choose blocklists" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="Combine lists for this session." Foreground="#70645D" Margin="0,3,0,10"/><ListBox x:Name="SessionLists" SelectionMode="Extended" MinHeight="220" DisplayMemberPath="Name"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0"><TextBlock Text="Length (minutes)" VerticalAlignment="Center"/><TextBox x:Name="DurationBox" Text="25" Width="90" Margin="12,0,20,0"/><TextBlock Text="Lock" VerticalAlignment="Center" Margin="0,0,10,0"/><ComboBox x:Name="SessionLockBox" Width="155"><ComboBoxItem Content="None"/><ComboBoxItem Content="Timer" IsSelected="True"/><ComboBoxItem Content="Password"/></ComboBox></StackPanel>
-                        <CheckBox x:Name="StrictBox" Content="Strict session — protect the active rules" IsChecked="True" Margin="0,8,0,0"/>
-                        <WrapPanel Margin="0,16,0,0"><Button x:Name="StartButton" Content="Start session" Click="Start_Click" Background="#9A4B25" Foreground="White"/><Button x:Name="StopButton" Content="End session" Click="Stop_Click" IsEnabled="False"/><Button x:Name="FailsafeButton" Content="Emergency end active blocks…" Click="Failsafe_Click" IsEnabled="False"/></WrapPanel>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1"><TextBlock Text="How enforcement works" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="The background agent requests blocked apps to close while a session is active. Chrome website rules require the included extension and native host. Strict sessions also close supported alternate browsers when enabled in Protection." TextWrapping="Wrap" Foreground="#665B55" Margin="0,8,0,12"/><Button Content="Install Chrome host" Click="InstallHost_Click" HorizontalAlignment="Left"/><TextBlock Text="Sessions can run up to 12 hours. Timer and password locks disable normal early ending. Emergency end active blocks is always available, bypasses those locks, and records the action while preserving your settings." TextWrapping="Wrap" Foreground="#70645D" Margin="0,12,0,0"/></StackPanel>
-                </Grid>
-            </TabItem>
-            <TabItem Header="Blocklists"><Grid Margin="16"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <StackPanel><ListBox x:Name="BlocklistBox" DisplayMemberPath="Name" SelectionChanged="Blocklist_SelectionChanged" MinHeight="280"/><WrapPanel Margin="0,10,0,0"><Button Content="New" Click="NewBlocklist_Click"/><Button Content="Delete" Click="DeleteBlocklist_Click"/></WrapPanel><Button Content="Import sites…" Click="Import_Click" HorizontalAlignment="Left" Margin="0,12,0,0"/></StackPanel>
-                    <Grid Grid.Column="1" Margin="20,0,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="*"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                        <StackPanel><TextBlock Text="List name" FontWeight="SemiBold"/><TextBox x:Name="ListNameBox"/></StackPanel>
-                        <DockPanel Grid.Row="1"><TextBlock DockPanel.Dock="Top" Text="Websites and paths to block — one per line" FontWeight="SemiBold"/><TextBox x:Name="DomainsBox" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top"/></DockPanel>
-                        <DockPanel Grid.Row="2"><TextBlock DockPanel.Dock="Top" Text="Exceptions — one per line" FontWeight="SemiBold"/><TextBox x:Name="ExceptionsBox" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top"/></DockPanel>
-                        <DockPanel Grid.Row="3"><TextBlock DockPanel.Dock="Top" Text="Applications to close — process names, one per line" FontWeight="SemiBold"/><TextBox x:Name="ProcessesBox" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top"/></DockPanel>
-                        <Button Grid.Row="4" Content="Save blocklist" Click="SaveBlocklist_Click" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+
+    <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="240"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Background="{StaticResource SidebarBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0">
+            <DockPanel Margin="16,24,16,20">
+                <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource Muted}" FontSize="12" Text="Everything stays on this PC. No account, no cloud."/>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10,0,0,28">
+                    <Grid Width="34" Height="34">
+                        <Ellipse Stroke="{StaticResource AccentBrush}" StrokeThickness="3"/>
+                        <Ellipse Width="12" Height="12" Fill="{StaticResource AccentBrush}"/>
                     </Grid>
-                </Grid>
-            </TabItem>
-            <TabItem Header="Schedules"><Grid Margin="16"><Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <StackPanel><TextBlock Text="Schedules" FontSize="18" FontWeight="SemiBold"/><ListBox x:Name="ScheduleBox" DisplayMemberPath="Name" MinHeight="330" Margin="0,8"/><Button Content="Delete selected schedule" Click="DeleteSchedule_Click" HorizontalAlignment="Left"/></StackPanel>
-                    <StackPanel Grid.Column="1" Margin="22,0,0,0"><TextBlock Text="Add or update a weekly schedule" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="Name"/><TextBox x:Name="ScheduleNameBox"/><TextBlock Text="Blocklists (Ctrl-click to select multiple)"/><ListBox x:Name="ScheduleLists" SelectionMode="Extended" DisplayMemberPath="Name" MinHeight="130" Margin="0,4,0,8"/>
-                        <TextBlock Text="Days"/><WrapPanel x:Name="DaysPanel"><CheckBox Content="Sun" Tag="0" Margin="5"/><CheckBox Content="Mon" Tag="1" Margin="5"/><CheckBox Content="Tue" Tag="2" Margin="5"/><CheckBox Content="Wed" Tag="3" Margin="5"/><CheckBox Content="Thu" Tag="4" Margin="5"/><CheckBox Content="Fri" Tag="5" Margin="5"/><CheckBox Content="Sat" Tag="6" Margin="5"/></WrapPanel>
-                        <WrapPanel><StackPanel><TextBlock Text="Start (local)"/><TextBox x:Name="ScheduleStartBox" Text="09:00" Width="100"/></StackPanel><StackPanel><TextBlock Text="End (local)"/><TextBox x:Name="ScheduleEndBox" Text="17:00" Width="100"/></StackPanel><StackPanel><TextBlock Text="Lock"/><ComboBox x:Name="ScheduleLockBox" Width="130"><ComboBoxItem Content="None"/><ComboBoxItem Content="Timer" IsSelected="True"/><ComboBoxItem Content="Password"/></ComboBox></StackPanel></WrapPanel>
-                        <CheckBox x:Name="ScheduleStrictBox" Content="Strict schedule" IsChecked="True"/><Button Content="Save schedule" Click="SaveSchedule_Click" HorizontalAlignment="Left" Margin="0,12,0,0"/>
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="FocusBlocker" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBlock Text="Stay on the thing" Style="{StaticResource Muted}" FontSize="12" LineHeight="14"/>
                     </StackPanel>
+                </StackPanel>
+                <StackPanel>
+                    <RadioButton x:Name="NavFocus" Style="{StaticResource NavItem}" Tag="&#xE916;" Content="Focus" IsChecked="True" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavBlocklists" Style="{StaticResource NavItem}" Tag="&#xE8FD;" Content="Blocklists" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavSchedules" Style="{StaticResource NavItem}" Tag="&#xE787;" Content="Schedules" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavProtection" Style="{StaticResource NavItem}" Tag="&#xE72E;" Content="Protection" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavActivity" Style="{StaticResource NavItem}" Tag="&#xE81C;" Content="Activity" Checked="Nav_Checked"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Column="1" Margin="36,30,36,28">
+
+            <!-- Focus -->
+            <ScrollViewer x:Name="PageFocus" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="0,0,12,0">
+                    <TextBlock Style="{StaticResource PageTitle}" Text="Focus"/>
+                    <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,22" Text="Block distracting apps and websites for a set time."/>
+
+                    <Border Style="{StaticResource Card}" Padding="30,22">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="{StaticResource MutedBrush}" Margin="0,2,10,0"/>
+                                    <TextBlock x:Name="StatusText" Text="No session active" FontWeight="SemiBold" Foreground="{StaticResource MutedBrush}"/>
+                                </StackPanel>
+                                <TextBlock x:Name="CountdownText" Text="Ready" FontSize="48" FontWeight="Light" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Width="230">
+                                <Button x:Name="StopButton" Content="End session" Click="Stop_Click" IsEnabled="False" Style="{StaticResource GhostButton}" Margin="0,0,0,10"/>
+                                <Button x:Name="FailsafeButton" Content="Emergency end…" Click="Failsafe_Click" IsEnabled="False" Style="{StaticResource DangerButton}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource CardTitle}" Text="New session" Margin="0,0,0,18"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="BLOCKLISTS"/>
+                                <ListBox x:Name="SessionLists" SelectionMode="Multiple" DisplayMemberPath="Name" MinHeight="96" MaxHeight="190"/>
+                                <TextBlock x:Name="NoListsHint" Style="{StaticResource Muted}" FontSize="12" Margin="0,8,0,0" Visibility="Collapsed" Text="No blocklists yet. Create one in Blocklists first."/>
+
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="LENGTH" Margin="0,18,0,6"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource PresetButton}" Content="15" Tag="15" Click="Preset_Click"/>
+                                    <Button Style="{StaticResource PresetButton}" Content="25" Tag="25" Click="Preset_Click"/>
+                                    <Button Style="{StaticResource PresetButton}" Content="45" Tag="45" Click="Preset_Click"/>
+                                    <Button Style="{StaticResource PresetButton}" Content="60" Tag="60" Click="Preset_Click"/>
+                                    <Button Style="{StaticResource PresetButton}" Content="90" Tag="90" Click="Preset_Click"/>
+                                    <TextBox x:Name="DurationBox" Text="25" Width="70" Margin="10,0,8,0" TextAlignment="Center"/>
+                                    <TextBlock Text="minutes" Style="{StaticResource Muted}" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <Grid Margin="0,18,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource FieldLabel}" Text="LOCK"/>
+                                        <ComboBox x:Name="SessionLockBox" HorizontalAlignment="Stretch"><ComboBoxItem Content="None"/><ComboBoxItem Content="Timer" IsSelected="True"/><ComboBoxItem Content="Password"/></ComboBox>
+                                    </StackPanel>
+                                    <CheckBox x:Name="StrictBox" Grid.Column="1" Content="Strict mode" ToolTip="Protect the active rules: they can only be made stricter during the session." IsChecked="True" VerticalAlignment="Bottom" Margin="22,0,0,4"/>
+                                </Grid>
+
+                                <Button x:Name="StartButton" Content="Start session" Click="Start_Click" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,24,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel Grid.Column="2">
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Website blocking" Margin="0,0,0,8"/>
+                                    <TextBlock x:Name="HintText" Style="{StaticResource Muted}" Text="Sites are blocked by the Chrome extension, which talks to this app through a small helper. Install the helper once, then load the extension folder in Chrome."/>
+                                    <Button Content="Install Chrome host" Click="InstallHost_Click" Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,16,0,0"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource CardTitle}" Text="Good to know" Margin="0,0,0,8"/>
+                                    <TextBlock Style="{StaticResource Muted}" Text="Sessions run up to 12 hours. Timer and password locks stop you ending early. Emergency end is always available, and it is logged in Activity."/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Blocklists -->
+            <Grid x:Name="PageBlocklists" Visibility="Collapsed">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <StackPanel Margin="0,0,0,20"><TextBlock Style="{StaticResource PageTitle}" Text="Blocklists"/><TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" Text="Group the sites and apps you want out of the way."/></StackPanel>
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource Card}" Padding="16">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Bottom" Margin="0,14,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="New" Click="NewBlocklist_Click" Style="{StaticResource GhostButton}" Margin="0,0,8,0"/>
+                                    <Button Content="Delete" Click="DeleteBlocklist_Click" Style="{StaticResource GhostButton}"/>
+                                </StackPanel>
+                                <Button Content="Import sites…" Click="Import_Click" Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                            </StackPanel>
+                            <ListBox x:Name="BlocklistBox" DisplayMemberPath="Name" SelectionChanged="Blocklist_SelectionChanged"/>
+                        </DockPanel>
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource Card}">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="2*"/><RowDefinition Height="*"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <StackPanel><TextBlock Style="{StaticResource FieldLabel}" Text="LIST NAME"/><TextBox x:Name="ListNameBox"/></StackPanel>
+                            <DockPanel Grid.Row="1"><TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Text="WEBSITES AND PATHS TO BLOCK (ONE PER LINE)"/><TextBox x:Name="DomainsBox" Style="{StaticResource CodeBox}"/></DockPanel>
+                            <DockPanel Grid.Row="2"><TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Text="EXCEPTIONS (ONE PER LINE)"/><TextBox x:Name="ExceptionsBox" Style="{StaticResource CodeBox}"/></DockPanel>
+                            <DockPanel Grid.Row="3"><TextBlock DockPanel.Dock="Top" Style="{StaticResource FieldLabel}" Text="APPS TO CLOSE (PROCESS NAMES, ONE PER LINE)"/><TextBox x:Name="ProcessesBox" Style="{StaticResource CodeBox}"/></DockPanel>
+                            <Button Grid.Row="4" Content="Save blocklist" Click="SaveBlocklist_Click" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/>
+                        </Grid>
+                    </Border>
                 </Grid>
-            </TabItem>
-            <TabItem Header="Protection"><StackPanel Margin="18" MaxWidth="760" HorizontalAlignment="Left"><TextBlock Text="Keep enforcement running" FontSize="18" FontWeight="SemiBold"/><CheckBox x:Name="AgentBox" Content="Run FocusBlocker in the background and at sign-in" Margin="0,12,0,4"/><CheckBox x:Name="OtherBrowsersBox" Content="Close Edge, Firefox and other browsers during strict website sessions" Margin="0,4,0,12"/><Button Content="Save protection settings" Click="SaveProtection_Click" HorizontalAlignment="Left"/><Separator Margin="0,22"/><TextBlock Text="Accountability password" FontSize="18" FontWeight="SemiBold"/><TextBlock x:Name="PasswordStatusText" Foreground="#665B55" Margin="0,4,0,8"/><TextBlock Text="New password (at least 8 characters)"/><PasswordBox x:Name="NewPasswordBox" Padding="8" Margin="0,4,0,8"/><TextBlock Text="Current password (when changing it)"/><PasswordBox x:Name="CurrentPasswordBox" Padding="8" Margin="0,4,0,8"/><Button Content="Set or change password" Click="SetPassword_Click" HorizontalAlignment="Left"/><Separator Margin="0,22"/><TextBlock Text="Protection is per Windows account. A user or administrator with system access can stop the agent, change local files, or uninstall it; this app does not install a tamper-proof driver." TextWrapping="Wrap" Foreground="#70645D"/></StackPanel></TabItem>
-            <TabItem Header="Activity"><DockPanel Margin="16"><StackPanel DockPanel.Dock="Top"><TextBlock Text="Recent activity" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="Local event history with a chained integrity tag." Foreground="#70645D" Margin="0,4,0,8"/></StackPanel><ListView x:Name="ActivityList"><ListView.View><GridView><GridViewColumn Header="Time" DisplayMemberBinding="{Binding TimeUtc, StringFormat={}{0:yyyy-MM-dd HH:mm:ss} UTC}" Width="190"/><GridViewColumn Header="Event" DisplayMemberBinding="{Binding Event}" Width="180"/><GridViewColumn Header="Details" DisplayMemberBinding="{Binding Detail}" Width="490"/></GridView></ListView.View></ListView></DockPanel></TabItem>
-        </TabControl>
-        <TextBlock Grid.Row="3" x:Name="HintText" Text="Chrome extension is installed separately. Use the Extension folder in the complete Windows ZIP; see the README for setup." Foreground="#70645D" TextWrapping="Wrap"/>
+            </Grid>
+
+            <!-- Schedules -->
+            <Grid x:Name="PageSchedules" Visibility="Collapsed">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <StackPanel Margin="0,0,0,20"><TextBlock Style="{StaticResource PageTitle}" Text="Schedules"/><TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" Text="Start focus sessions automatically, every week."/></StackPanel>
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="280"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource Card}" Padding="16">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Bottom" Content="Delete selected" Click="DeleteSchedule_Click" Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Margin="0,14,0,0"/>
+                            <Grid>
+                                <ListBox x:Name="ScheduleBox" DisplayMemberPath="Name"/>
+                                <TextBlock x:Name="NoSchedulesHint" Style="{StaticResource Muted}" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20" IsHitTestVisible="False" Text="No schedules yet.&#x0A;Add one on the right."/>
+                            </Grid>
+                        </DockPanel>
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource Card}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="0,0,10,0">
+                                <TextBlock Style="{StaticResource CardTitle}" Text="Add or update a schedule" Margin="0,0,0,18"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="NAME"/>
+                                <TextBox x:Name="ScheduleNameBox"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="BLOCKLISTS (CLICK TO SELECT MORE THAN ONE)"/>
+                                <ListBox x:Name="ScheduleLists" SelectionMode="Multiple" DisplayMemberPath="Name" MinHeight="90" MaxHeight="150" Margin="0,0,0,18"/>
+                                <TextBlock Style="{StaticResource FieldLabel}" Text="DAYS"/>
+                                <WrapPanel x:Name="DaysPanel" Margin="0,0,0,10">
+                                    <CheckBox Style="{StaticResource Chip}" Content="Sun" Tag="0"/><CheckBox Style="{StaticResource Chip}" Content="Mon" Tag="1"/><CheckBox Style="{StaticResource Chip}" Content="Tue" Tag="2"/><CheckBox Style="{StaticResource Chip}" Content="Wed" Tag="3"/><CheckBox Style="{StaticResource Chip}" Content="Thu" Tag="4"/><CheckBox Style="{StaticResource Chip}" Content="Fri" Tag="5"/><CheckBox Style="{StaticResource Chip}" Content="Sat" Tag="6"/>
+                                </WrapPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <StackPanel Margin="0,0,16,0"><TextBlock Style="{StaticResource FieldLabel}" Text="START (LOCAL)"/><TextBox x:Name="ScheduleStartBox" Text="09:00" Width="110"/></StackPanel>
+                                    <StackPanel Margin="0,0,16,0"><TextBlock Style="{StaticResource FieldLabel}" Text="END (LOCAL)"/><TextBox x:Name="ScheduleEndBox" Text="17:00" Width="110"/></StackPanel>
+                                    <StackPanel><TextBlock Style="{StaticResource FieldLabel}" Text="LOCK"/><ComboBox x:Name="ScheduleLockBox" Width="150"><ComboBoxItem Content="None"/><ComboBoxItem Content="Timer" IsSelected="True"/><ComboBoxItem Content="Password"/></ComboBox></StackPanel>
+                                </StackPanel>
+                                <CheckBox x:Name="ScheduleStrictBox" Content="Strict mode" ToolTip="Protect the active rules: they can only be made stricter during the session." IsChecked="True" Margin="0,4,0,0"/>
+                                <Button Content="Save schedule" Click="SaveSchedule_Click" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,22,0,0"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- Protection -->
+            <ScrollViewer x:Name="PageProtection" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="0,0,12,0" MaxWidth="760" HorizontalAlignment="Left">
+                    <TextBlock Style="{StaticResource PageTitle}" Text="Protection"/>
+                    <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,22" Text="Keep enforcement running, and make quitting harder."/>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Background agent" Margin="0,0,0,14"/>
+                            <CheckBox x:Name="AgentBox" Content="Run FocusBlocker in the background and at sign-in" Margin="0,0,0,8"/>
+                            <CheckBox x:Name="OtherBrowsersBox" Content="Close Edge, Firefox and other browsers during strict website sessions"/>
+                            <Button Content="Save protection settings" Click="SaveProtection_Click" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,20,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Accountability password" Margin="0,0,0,4"/>
+                            <TextBlock x:Name="PasswordStatusText" Style="{StaticResource Muted}" Margin="0,0,0,16"/>
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="NEW PASSWORD (AT LEAST 8 CHARACTERS)"/>
+                            <PasswordBox x:Name="NewPasswordBox"/>
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="CURRENT PASSWORD (WHEN CHANGING IT)"/>
+                            <PasswordBox x:Name="CurrentPasswordBox"/>
+                            <Button Content="Set or change password" Click="SetPassword_Click" Style="{StaticResource GhostButton}" HorizontalAlignment="Left"/>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Style="{StaticResource Muted}" FontSize="12" Margin="4,16,0,0" Text="Protection is per Windows account. Someone with administrator access can still stop the agent, edit local files or uninstall the app; there is no tamper-proof driver."/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Activity -->
+            <Grid x:Name="PageActivity" Visibility="Collapsed">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <StackPanel Margin="0,0,0,20"><TextBlock Style="{StaticResource PageTitle}" Text="Activity"/><TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" Text="A local history of what FocusBlocker did, with a chained integrity tag."/></StackPanel>
+                <Border Grid.Row="1" Style="{StaticResource Card}" Padding="8">
+                    <ListView x:Name="ActivityList" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Time" DisplayMemberBinding="{Binding TimeUtc, StringFormat={}{0:yyyy-MM-dd HH:mm:ss} UTC}" Width="210"/>
+                                <GridViewColumn Header="Event" DisplayMemberBinding="{Binding Event}" Width="180"/>
+                                <GridViewColumn Header="Details" DisplayMemberBinding="{Binding Detail}" Width="340"/>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Border>
+            </Grid>
+        </Grid>
     </Grid>
 </Window>

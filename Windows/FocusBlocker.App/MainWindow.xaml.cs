@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using FocusBlocker.Core;
@@ -36,10 +37,25 @@ public partial class MainWindow : Window
         AgentBox.IsChecked = _state.AgentEnabled; OtherBrowsersBox.IsChecked = _state.CloseOtherBrowsers;
         PasswordStatusText.Text = _state.AccountabilityPassword is null ? "No password set." : "An accountability password is set.";
         ActivityList.ItemsSource = _store.ReadActivity();
+        NoListsHint.Visibility = _state.Blocklists.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        NoSchedulesHint.Visibility = _state.Schedules.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         _loading = false;
         if (_state.Blocklists.Count > 0) BlocklistBox.SelectedIndex = 0;
         RefreshSession();
     }
+
+    private void Nav_Checked(object sender, RoutedEventArgs e)
+    {
+        if (PageActivity is null) return;  // Checked fires while the window is still being built.
+        var pages = new (RadioButton Nav, UIElement Page)[]
+        {
+            (NavFocus, PageFocus), (NavBlocklists, PageBlocklists), (NavSchedules, PageSchedules), (NavProtection, PageProtection), (NavActivity, PageActivity)
+        };
+        foreach (var (nav, page) in pages) page.Visibility = ReferenceEquals(nav, sender) ? Visibility.Visible : Visibility.Collapsed;
+        if (ReferenceEquals(sender, NavActivity)) ActivityList.ItemsSource = _store.ReadActivity();
+    }
+
+    private void Preset_Click(object sender, RoutedEventArgs e) => DurationBox.Text = (string)((Button)sender).Tag;
 
     private void RefreshSession()
     {
@@ -48,12 +64,14 @@ public partial class MainWindow : Window
         var active = _state.Sessions.Where(s => s.IsActive).ToList();
         if (active.Count == 0)
         {
-            StatusText.Text = "No session active"; CountdownText.Text = "";
+            StatusText.Text = "No session active"; CountdownText.Text = "Ready";
+            StatusDot.Fill = (Brush)FindResource("MutedBrush");
             StartButton.IsEnabled = true; StopButton.IsEnabled = false; FailsafeButton.IsEnabled = false; return;
         }
         var remaining = active.Min(s => s.EndsUtc) - DateTimeOffset.UtcNow;
         StatusText.Text = active.Any(s => s.Strict) ? $"Strict session active · {active.Count} blocklist session(s)" : $"Session active · {active.Count} session(s)";
-        CountdownText.Text = $"{(int)remaining.TotalHours:00}:{remaining.Minutes:00}:{remaining.Seconds:00} remaining";
+        CountdownText.Text = $"{(int)remaining.TotalHours:00}:{remaining.Minutes:00}:{remaining.Seconds:00}";
+        StatusDot.Fill = (Brush)FindResource("AccentBrush");
         StartButton.IsEnabled = false;
         StopButton.IsEnabled = active.All(s => s.Lock != SessionLock.Timer.ToString());
         FailsafeButton.IsEnabled = true;

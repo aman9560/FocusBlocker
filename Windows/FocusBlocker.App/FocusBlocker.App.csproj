@@ -6,6 +6,8 @@
     <ApplicationIcon>..\..\Assets\focus.ico</ApplicationIcon>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- ThemeMode (the built-in Fluent theme) is still marked experimental. -->
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\FocusBlocker.Core\FocusBlocker.Core.csproj" />
