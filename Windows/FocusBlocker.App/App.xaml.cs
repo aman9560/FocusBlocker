@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using FocusBlocker.Core;
@@ -28,7 +29,12 @@ public partial class App : Application
             // Used by install-windows.ps1: no window, and the exit code says whether it worked.
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
             try { ChromeHostInstaller.Install(); Shutdown(0); }
-            catch (Exception) { Shutdown(1); }
+            catch (Exception error)
+            {
+                // A windowless app has nowhere to show this, so keep it where the installer's warning can point to.
+                try { Directory.CreateDirectory(StateStore.DirectoryPath); File.WriteAllText(Path.Combine(StateStore.DirectoryPath, "install-host-error.txt"), error.ToString()); } catch { }
+                Shutdown(1);
+            }
             return;
         }
         if (e.Args.Contains("--failsafe-end", StringComparer.OrdinalIgnoreCase))

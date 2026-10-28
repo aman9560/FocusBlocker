@@ -15,7 +15,10 @@ public static class ChromeHostInstaller
     /// <summary>Copies the host out of the app folder, writes its manifest and points Chrome at it. Returns the manifest path.</summary>
     public static string Install()
     {
-        var source = Path.Combine(AppContext.BaseDirectory, "host");
+        // The release is a single-file app published with IncludeAllContentForSelfExtract, so AppContext.BaseDirectory is the
+        // temporary extraction folder, not the install folder that holds "host". The running exe's own folder is.
+        var appFolder = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
+        var source = Path.Combine(appFolder, "host");
         var executable = Path.Combine(source, "FocusBlocker.NativeHost.exe");
         if (!File.Exists(executable)) throw new FileNotFoundException("The host folder is missing. Use the complete Windows release ZIP.", executable);
 

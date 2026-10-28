@@ -100,6 +100,16 @@ jobs:
           dotnet publish Windows/FocusBlocker.NativeHost/FocusBlocker.NativeHost.csproj -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=true -o (Join-Path $dist 'host')
           Copy-Item Extension (Join-Path $dist 'extension') -Recurse
           Copy-Item Windows/README.md (Join-Path $dist 'README-Windows.md')
+          # Smoke test the published single-file app: it must find its "host" folder next to the exe (not in the
+          # self-extraction folder) and register the Chrome host. This is the exact step install-windows.ps1 runs.
+          $env:FOCUSBLOCKER_STATE_DIR = Join-Path $env:RUNNER_TEMP 'fb-smoke-state'
+          $smoke = Start-Process -FilePath (Join-Path $dist 'FocusBlocker.App.exe') -ArgumentList '--install-host' -Wait -PassThru
+          if ($smoke.ExitCode -ne 0) { throw "FocusBlocker.App.exe --install-host exited with $($smoke.ExitCode)" }
+          foreach ($expected in 'native-host.json', 'native-host\FocusBlocker.NativeHost.exe') {
+            if (-not (Test-Path (Join-Path $env:FOCUSBLOCKER_STATE_DIR $expected))) { throw "--install-host did not create $expected" }
+          }
+          Remove-Item Env:FOCUSBLOCKER_STATE_DIR
+          Remove-Item 'HKCU:\Software\Google\Chrome\NativeMessagingHosts\com.focusblocker.nmh' -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path out -Force | Out-Null
           Compress-Archive -Path (Join-Path $dist '*') -DestinationPath out/FocusBlocker-Windows-x64.zip -Force
           Copy-Item (Join-Path $dist 'FocusBlocker.App.exe') out/FocusBlocker.App.exe
