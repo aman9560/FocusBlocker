@@ -1,0 +1,10 @@
+# <Area>: <imperative summary, 72 characters or fewer>
+#
+# Why was this change needed, and what behaviour changes? Wrap at about 72-100 columns.
+# How did you verify it? What could you NOT verify?
+#
+# Fixes #
+#
+# Area prefixes: Mac, Windows, Extension, CI, Docs, Installer (omit for cross-cutting changes).
+# Rules: imperative mood, no trailing full stop, one logical change per commit, tests pass.
+# Keep Co-Authored-By trailers for AI-assisted work. Full rules: CONTRIBUTING.md
