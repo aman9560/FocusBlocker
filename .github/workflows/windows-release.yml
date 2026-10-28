@@ -17,7 +17,9 @@ permissions:
   contents: write
 
 env:
-  VERSION: ${{ inputs.version || github.ref_name }}
+  # Not named VERSION: MSBuild reads environment variables as properties, so a VERSION variable becomes the
+  # projects' Version, 'v0.2.3' isn't a valid package version, and every dotnet restore fails (MSB4181).
+  RELEASE_TAG: ${{ inputs.version || github.ref_name }}
 
 jobs:
   mac:
@@ -30,7 +32,7 @@ jobs:
       - name: Test
         run: ./build.sh test
       - name: Build the app
-        run: FOCUS_VERSION="${VERSION#v}" ./build.sh app
+        run: FOCUS_VERSION="${RELEASE_TAG#v}" ./build.sh app
       - name: Package ZIP, DMG and extension
         run: |
           set -euo pipefail
@@ -121,8 +123,8 @@ jobs:
         run: |
           set -euo pipefail
           ls -la assets
-          if ! gh release view "$VERSION" >/dev/null 2>&1; then
-            gh release create "$VERSION" --title "FocusBlocker $VERSION" --target main --latest \
-              --notes "FocusBlocker $VERSION for macOS (Apple silicon) and Windows (x64), with the Chrome extension. Install on a Mac with install-mac.sh and on Windows with install-windows.ps1 (see the README); this avoids the unsigned-app warnings. The Chrome extension is a separate install."
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --title "FocusBlocker $RELEASE_TAG" --target main --latest \
+              --notes "FocusBlocker $RELEASE_TAG for macOS (Apple silicon) and Windows (x64), with the Chrome extension. Install on a Mac with install-mac.sh and on Windows with install-windows.ps1 (see the README); this avoids the unsigned-app warnings. The Chrome extension is a separate install."
           fi
-          gh release upload "$VERSION" assets/* --clobber
+          gh release upload "$RELEASE_TAG" assets/* --clobber
