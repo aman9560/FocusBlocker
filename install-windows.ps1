@@ -12,7 +12,7 @@
 #   $env:FOCUSBLOCKER_ZIP = "C:\path\FocusBlocker-Windows-x64.zip"; .\install-windows.ps1
 #
 #   FOCUSBLOCKER_ZIP              install this FocusBlocker-Windows-x64.zip instead of downloading
-#   FOCUSBLOCKER_VERSION          a release tag such as v0.2.2 (default: latest)
+#   FOCUSBLOCKER_VERSION          a release tag such as v0.2.5 (default: latest)
 #   FOCUSBLOCKER_DIR              install folder (default: %LOCALAPPDATA%\Programs\FocusBlocker)
 #   FOCUSBLOCKER_NO_CHROME_HOST   set to 1 to skip registering the Chrome native messaging host
 #   FOCUSBLOCKER_NO_LAUNCH        set to 1 to not start the app afterwards
