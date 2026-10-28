@@ -1,7 +1,7 @@
 name: Release
 
 # Builds and publishes everything on a version tag: the macOS app (ZIP and DMG), the Windows app (ZIP and EXE) and
-# the Chrome extension ZIP. Run it from the Actions tab to rebuild a release, or push a tag such as v0.2.3.
+# the Chrome extension ZIP. Run it from the Actions tab to rebuild a release, or push a tag such as v0.2.6.
 on:
   push:
     tags:
@@ -11,14 +11,14 @@ on:
       version:
         description: Version tag to publish
         required: true
-        default: v0.2.3
+        default: v0.2.6
 
 permissions:
   contents: write
 
 env:
   # Not named VERSION: MSBuild reads environment variables as properties, so a VERSION variable becomes the
-  # projects' Version, 'v0.2.3' isn't a valid package version, and every dotnet restore fails (MSB4181).
+  # projects' Version, 'v0.2.6' isn't a valid package version, and every dotnet restore fails (MSB4181).
   RELEASE_TAG: ${{ inputs.version || github.ref_name }}
 
 jobs:

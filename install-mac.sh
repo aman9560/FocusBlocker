@@ -16,7 +16,7 @@
 #   --dest DIR         install into DIR (default /Applications, or ~/Applications if that isn't writable)
 #   --no-chrome-host   don't register the Chrome native messaging host
 #   --no-open          don't launch the app afterwards
-#   --version TAG      download a specific release (for example v0.2.2) instead of the latest
+#   --version TAG      download a specific release (for example v0.2.5) instead of the latest
 #   --force            update even while a focus session is running
 set -euo pipefail
 
