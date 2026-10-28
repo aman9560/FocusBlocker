@@ -18,7 +18,7 @@ To install by hand instead:
 2. Run `FocusBlocker.App.exe`.
 3. In **Protection**, turn on the background agent if you want process enforcement and schedules to continue while the window is closed. It starts at sign-in for this Windows account.
 4. To block sites in Chrome, use **Install Chrome host**, then open `chrome://extensions`, enable Developer mode, and choose **Load unpacked** to select the included `extension` folder.
-5. Create one or more blocklists, choose them in **Focus session** or a schedule, and start.
+5. Create one or more blocklists, choose them in **Focus** or a schedule, and start.
 
 The Chrome extension must be installed separately. Chrome does not currently have this extension in the Web Store. The standalone EXE does not contain the extension and native host; use the complete ZIP for Chrome support.
 
