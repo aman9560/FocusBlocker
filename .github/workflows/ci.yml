@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  mac:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build and test (Swift engine, extension matcher)
+        run: ./build.sh test
+      - name: Build the app bundle
+        run: ./build.sh app
+      - name: Check the installer script
+        run: bash -n install-mac.sh
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Test the engine and the Chrome host process
+        run: dotnet run --project Windows/FocusBlocker.Tests -c Release
+      - name: Build the app
+        run: dotnet build Windows/FocusBlocker.App/FocusBlocker.App.csproj -c Release
+      - name: Check the installer script parses
+        shell: pwsh
+        run: |
+          $errors = $null; $tokens = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile("$PWD/install-windows.ps1", [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) { $errors | ForEach-Object { Write-Error $_.Message }; exit 1 }

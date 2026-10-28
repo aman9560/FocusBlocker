@@ -18,7 +18,10 @@ public sealed class StateStore
     };
     private static readonly string MutexName = "Local\\FocusBlocker-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Environment.UserName)))[..16];
 
-    public static string DirectoryPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FocusBlocker");
+    /// <summary>Per-user state folder. FOCUSBLOCKER_STATE_DIR overrides it, which the tests use.</summary>
+    public static string DirectoryPath => Environment.GetEnvironmentVariable("FOCUSBLOCKER_STATE_DIR") is { Length: > 0 } custom
+        ? custom
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FocusBlocker");
     public static string StatePath => Path.Combine(DirectoryPath, "state.json");
     private static string KeyPath => Path.Combine(DirectoryPath, "activity.key");
 
@@ -29,17 +32,18 @@ public sealed class StateStore
         return Locked(() =>
         {
             var state = LoadUnsafe();
+            var before = Serialize(state);
             TickUnsafe(state, DateTimeOffset.UtcNow);
             try
             {
                 var result = action(state);
-                SaveUnsafe(state);
+                SaveIfChanged(state, before);
                 return result;
             }
             catch
             {
                 // Failed password attempts and their lockout state must survive the exception.
-                SaveUnsafe(state);
+                SaveIfChanged(state, before);
                 throw;
             }
         });
@@ -52,8 +56,9 @@ public sealed class StateStore
         Locked(() =>
         {
             var state = LoadUnsafe();
+            var before = Serialize(state);
             TickUnsafe(state, DateTimeOffset.UtcNow);
-            SaveUnsafe(state);
+            SaveIfChanged(state, before);
             return true;
         });
     }
@@ -276,8 +281,16 @@ public sealed class StateStore
     public static List<string> NormalizeRules(IEnumerable<string> rules) => rules.Select(DomainRule.Parse).Where(r => r is not null).Select(r => r!.Text)
         .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase).ToList();
 
-    public static List<string> NormalizeApps(IEnumerable<string> names) => names.Select(n => Path.GetFileNameWithoutExtension(n)).Where(n => !string.IsNullOrWhiteSpace(n))
-        .Select(n => n!.Trim()).Where(n => !new[] { "csrss", "dwm", "explorer", "lsass", "services", "smss", "wininit", "winlogon", "focusblocker" }.Contains(n, StringComparer.OrdinalIgnoreCase))
+    // Splits on both separators so a pasted Windows path normalizes the same way on any platform.
+    private static string ProcessBaseName(string value)
+    {
+        var name = value.Trim().Trim('"');
+        name = name[(name.LastIndexOfAny(['\\', '/']) + 1)..];
+        return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
+    }
+
+    public static List<string> NormalizeApps(IEnumerable<string> names) => names.Select(ProcessBaseName).Where(n => !string.IsNullOrWhiteSpace(n))
+        .Select(n => n!.Trim()).Where(n => !ProcessGuard.IsProtected(n))
         .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase).ToList();
 
     public static PasswordRecord MakePassword(string password)
@@ -330,6 +343,16 @@ public sealed class StateStore
         catch (JsonException) { return new FocusState(); }
         catch (IOException) { return new FocusState(); }
     }
+
+    private static string Serialize(FocusState state) => JsonSerializer.Serialize(state, JsonOptions);
+
+    private void SaveIfChanged(FocusState state, string before)
+    {
+        if (Serialize(state) != before) SaveUnsafe(state);
+    }
+
+    /// <summary>Records an event from the app or background agent, for example a blocked app being closed.</summary>
+    public void RecordActivity(string eventName, string detail) => Update(state => AddActivity(state, eventName, detail));
 
     private void SaveUnsafe(FocusState state)
     {

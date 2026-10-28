@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FocusBlocker.Core\FocusBlocker.Core.csproj" />
+    <!-- Built so the host test can run the real process, but not linked into the tests. -->
+    <ProjectReference Include="..\FocusBlocker.NativeHost\FocusBlocker.NativeHost.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+</Project>

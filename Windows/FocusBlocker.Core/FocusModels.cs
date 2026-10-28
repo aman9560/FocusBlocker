@@ -88,26 +88,32 @@ public sealed record DomainRule(string Host, string? Path)
     public bool IsAll => Host == "*";
     public string Text => Host + (Path ?? "");
 
+    private static bool IsAllWebsites(string value) => value is "*" or "*.*" or "*/" or "*.*/";
+
     public static DomainRule? Parse(string raw)
     {
         var value = raw.Trim().ToLowerInvariant();
         if (value.Length == 0 || value.StartsWith('#')) return null;
-        while (value.EndsWith("/*", StringComparison.Ordinal) || value.EndsWith('*'))
-            value = value[..(value.EndsWith("/*", StringComparison.Ordinal) ? value.Length - 2 : value.Length - 1)];
-        if (value is "*" or "*.*" or "*/" or "*.*/") return new DomainRule("*", null);
         var scheme = value.IndexOf("://", StringComparison.Ordinal);
         if (scheme >= 0)
         {
+            // Only web addresses are rules. This keeps `file://*.*` from being read as "every website".
             var protocol = value[..scheme];
             if (protocol is not ("http" or "https")) return null;
             value = value[(scheme + 3)..];
         }
+        // Must come before trailing-wildcard stripping, which would otherwise reduce "*.*" to nothing.
+        if (IsAllWebsites(value)) return new DomainRule("*", null);
+        while (value.EndsWith("/*", StringComparison.Ordinal) || value.EndsWith('*'))
+            value = value[..(value.EndsWith("/*", StringComparison.Ordinal) ? value.Length - 2 : value.Length - 1)];
         var end = value.IndexOfAny(['?', '#']);
         if (end >= 0) value = value[..end];
         if (value.StartsWith("*.", StringComparison.Ordinal)) value = value[2..];
         var slash = value.IndexOf('/');
         var host = (slash < 0 ? value : value[..slash]).TrimEnd('.');
         var path = slash < 0 ? null : value[slash..].TrimEnd('/');
+        var colon = host.LastIndexOf(':');
+        if (colon >= 0 && colon < host.Length - 1 && host[(colon + 1)..].All(char.IsAsciiDigit)) host = host[..colon];
         if (host.StartsWith("www.", StringComparison.Ordinal)) host = host[4..];
         try { host = new System.Globalization.IdnMapping().GetAscii(host); } catch { return null; }
         if (host.Length == 0 || host.Contains(' ') || (!host.Contains('.') && host != "localhost") || host.Contains("..")) return null;

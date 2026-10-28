@@ -7,6 +7,7 @@ var input = Console.OpenStandardInput();
 var output = Console.OpenStandardOutput();
 var writeLock = new object();
 string lastRevision = "";
+var revisionLock = new object();
 
 void Send(Dictionary<string, object?> message)
 {
@@ -21,13 +22,26 @@ void Send(Dictionary<string, object?> message)
     }
 }
 
-void SendPolicy()
+// Sends the current policy when it changed, or when the extension reports rules that don't match ours (for example
+// after it reloaded). A busy or briefly unreadable state file must not take the host down: the extension keeps its
+// current rules and the next poll tries again.
+void SendPolicy(bool force = false, string? extensionRevision = null)
 {
-    var policy = store.CreatePolicy();
-    var revision = policy["revision"]?.ToString() ?? "";
-    if (revision == lastRevision) return;
-    lastRevision = revision;
-    Send(policy);
+    try
+    {
+        var policy = store.CreatePolicy();
+        var revision = policy["revision"]?.ToString() ?? "";
+        lock (revisionLock)
+        {
+            if (!force && revision == lastRevision && (extensionRevision is null || extensionRevision == revision)) return;
+            lastRevision = revision;
+        }
+        Send(policy);
+    }
+    catch (Exception error)
+    {
+        Console.Error.WriteLine("Focus Blocker native host: could not read policy: " + error.Message);
+    }
 }
 
 using var timer = new Timer(_ => SendPolicy(), null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
@@ -43,8 +57,13 @@ try
         if (body is null) break;
         using var document = JsonDocument.Parse(body);
         var type = document.RootElement.TryGetProperty("type", out var typeNode) ? typeNode.GetString() : null;
-        if (type is "hello" or "getPolicy") SendPolicy();
-        else if (type == "heartbeat") store.RecordExtensionHeartbeat();
+        if (type is "hello" or "getPolicy") SendPolicy(force: true);
+        else if (type == "heartbeat")
+        {
+            store.RecordExtensionHeartbeat();
+            var reported = document.RootElement.TryGetProperty("rulesRevision", out var node) && node.ValueKind == JsonValueKind.String ? node.GetString() : null;
+            SendPolicy(extensionRevision: reported);
+        }
         else Send(new Dictionary<string, object?> { ["type"] = "error", ["message"] = "unknown message type" });
     }
 }

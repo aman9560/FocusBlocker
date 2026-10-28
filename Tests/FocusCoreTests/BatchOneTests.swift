@@ -72,9 +72,11 @@ let batchOneTests: [(String, () throws -> Void)] = [
         var s = Session(id: UUID(), blocklistIDs: [], origin: .manual, lock: .timer, strict: true, startedAt: Date(),
                         duration: 5400, credited: 0, endedAt: nil, endReason: nil)
         try expect(FocusNotice.started(s, listNames: "Social") ==
-                   .init(title: "Focus session started", body: "Social for 1 h 30 min. Timer-locked: it can't be stopped early."))
+                   .init(title: "Focus session started", body: "Social for 1 h 30 min. Timer-locked: normal stop is disabled; emergency failsafe is available."))
         s.endReason = .completed
         try expect(FocusNotice.ended(s, listNames: "Social").title == "Focus session complete")
+        s.endReason = .failsafe
+        try expect(FocusNotice.ended(s, listNames: "Social").title == "Focus session ended with failsafe")
         s.endReason = .unlockedWithPassword
         try expect(FocusNotice.ended(s, listNames: "Social").body.contains("accountability password"))
         try expect(FocusNotice.closed(appName: "Safari", reason: "only Chrome is allowed", until: nil).body == "Safari was closed: only Chrome is allowed.")
