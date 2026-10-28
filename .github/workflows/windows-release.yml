@@ -68,16 +68,21 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - name: Restore projects
+        run: |
+          dotnet restore Windows/FocusBlocker.Tests/FocusBlocker.Tests.csproj --ignore-failed-sources
+          dotnet restore Windows/FocusBlocker.App/FocusBlocker.App.csproj --ignore-failed-sources
+          dotnet restore Windows/FocusBlocker.NativeHost/FocusBlocker.NativeHost.csproj --ignore-failed-sources
       - name: Test
-        run: dotnet run --project Windows/FocusBlocker.Tests -c Release
+        run: dotnet run --project Windows/FocusBlocker.Tests -c Release --no-restore
       - name: Publish and package
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $dist = Join-Path $env:RUNNER_TEMP 'FocusBlocker-Windows'
           New-Item -ItemType Directory -Path $dist -Force | Out-Null
-          dotnet publish Windows/FocusBlocker.App/FocusBlocker.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true -o $dist
-          dotnet publish Windows/FocusBlocker.NativeHost/FocusBlocker.NativeHost.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o (Join-Path $dist 'host')
+          dotnet publish Windows/FocusBlocker.App/FocusBlocker.App.csproj -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true -o $dist
+          dotnet publish Windows/FocusBlocker.NativeHost/FocusBlocker.NativeHost.csproj -c Release -r win-x64 --self-contained true --no-restore -p:PublishSingleFile=true -o (Join-Path $dist 'host')
           Copy-Item Extension (Join-Path $dist 'extension') -Recurse
           Copy-Item Windows/README.md (Join-Path $dist 'README-Windows.md')
           New-Item -ItemType Directory -Path out -Force | Out-Null
