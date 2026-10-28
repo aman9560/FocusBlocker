@@ -69,10 +69,23 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Restore projects
+        shell: pwsh
         run: |
-          dotnet restore Windows/FocusBlocker.Tests/FocusBlocker.Tests.csproj --ignore-failed-sources
-          dotnet restore Windows/FocusBlocker.App/FocusBlocker.App.csproj --ignore-failed-sources
-          dotnet restore Windows/FocusBlocker.NativeHost/FocusBlocker.NativeHost.csproj --ignore-failed-sources
+          # NuGet occasionally fails with a transient error (MSB4181), so retry rather than fail the release.
+          # The app and host are restored for win-x64 because they are published for that runtime with --no-restore;
+          # a restore without it leaves publish with no win-x64 target (NETSDK1047).
+          function Restore([string[]]$Arguments) {
+            foreach ($attempt in 1..3) {
+              dotnet restore @Arguments --ignore-failed-sources
+              if ($LASTEXITCODE -eq 0) { return }
+              Write-Host "restore failed (attempt $attempt of 3)"
+              Start-Sleep -Seconds (5 * $attempt)
+            }
+            throw "dotnet restore failed: $Arguments"
+          }
+          Restore @('Windows/FocusBlocker.Tests/FocusBlocker.Tests.csproj')
+          Restore @('Windows/FocusBlocker.App/FocusBlocker.App.csproj', '-r', 'win-x64')
+          Restore @('Windows/FocusBlocker.NativeHost/FocusBlocker.NativeHost.csproj', '-r', 'win-x64')
       - name: Test
         run: dotnet run --project Windows/FocusBlocker.Tests -c Release --no-restore
       - name: Publish and package
